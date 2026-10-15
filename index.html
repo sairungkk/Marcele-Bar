@@ -1,0 +1,3460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bar Stock Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#e6d2a8;
+    --panel:#f2e6c8;
+    --panel-2:#e0cba0;
+    --line:#c6a96e;
+    --cream:#4b3a21;
+    --muted:#7a674a;
+    --copper:#b4762e;
+    --copper-bright:#8f5c1c;
+    --ok:#557d52;
+    --over:#977a1e;
+    --low:#b34a32;
+    --shadow: 0 6px 16px rgba(110,82,40,.18);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--cream);font-family:'Inter',"Segoe UI",Arial,sans-serif;}
+  body{padding:24px 30px 60px;}
+  h1,h2,h3{font-family:'Fraunces',Georgia,serif;font-weight:600;margin:0;}
+  h2{font-size:18px;}
+  a{color:var(--copper-bright);}
+
+  .app-header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:20px;border-bottom:1px solid var(--line);padding-bottom:16px;flex-wrap:wrap;}
+  .app-header h1{font-size:28px;}
+  .app-header .tag{color:var(--copper-bright);font-family:'Fraunces',Georgia,serif;font-style:italic;font-size:14.5px;margin-top:4px;}
+  .header-stats{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+  .stat-pill{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:112px;}
+  .stat-pill .n{font-family:'Fraunces',Georgia,serif;font-size:19px;color:var(--copper-bright);}
+  .stat-pill .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+  .save-flash{font-size:12px;color:var(--ok);opacity:0;transition:opacity .3s;}
+  .save-flash.show{opacity:1;}
+
+  nav.tabs{display:flex;gap:6px;margin-bottom:22px;border-bottom:1px solid var(--line);overflow-x:auto;}
+  nav.tabs button{background:none;border:none;color:var(--muted);font-family:inherit;font-size:14px;font-weight:600;padding:10px 4px;margin-right:20px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s;}
+  nav.tabs button:hover{color:var(--cream);}
+  nav.tabs button.on{color:var(--copper-bright);border-bottom-color:var(--copper);}
+
+  .view{display:none;}
+  .view.on{display:block;}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px;box-shadow:var(--shadow);}
+  .card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:10px;}
+  .card-head h2{font-size:18px;}
+  .card-head p{margin:4px 0 0;color:var(--muted);font-size:12.5px;}
+
+  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .chart-box{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px 14px;}
+  .chart-box h3{font-size:11.5px;color:var(--muted);font-family:'Inter',"Segoe UI",Arial,sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px;}
+  .chart-box canvas{width:100%;height:270px;display:block;}
+  @media(max-width:1150px){.chart-grid{grid-template-columns:1fr;}}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:8px 9px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  td{padding:8px 9px;border-bottom:1px solid rgba(150,118,66,.28);vertical-align:middle;}
+  tbody tr:hover{background:rgba(201,121,62,.06);}
+  .num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  td input,td select{background:var(--panel-2);border:1px solid var(--line);color:var(--cream);border-radius:6px;padding:5px 7px;font-size:12.5px;font-family:inherit;}
+  td input:focus,td select:focus,.field input:focus,.field select:focus,input:focus,select:focus{outline:none;border-color:var(--copper);}
+  input,select,button{font-family:inherit;}
+  input[type=text],input[type=number],input[type=date],input[type=password]{background:var(--panel-2);border:1px solid var(--line);color:var(--cream);border-radius:7px;padding:8px 10px;font-size:13.5px;}
+  select{background:var(--panel-2);border:1px solid var(--line);color:var(--cream);border-radius:7px;padding:8px 10px;font-size:13.5px;cursor:pointer;}
+  .btn.toggled{background:var(--copper);color:#1b140d;}
+  ::placeholder{color:#a08c66;}
+  select option{background:var(--panel-2);}
+  .totals-row td{border-top:2px solid var(--line);border-bottom:none;font-weight:700;color:var(--cream);background:rgba(201,121,62,.05);}
+
+  .btn{font-weight:600;font-size:13px;border-radius:8px;padding:9px 16px;border:1px solid var(--copper);background:var(--copper);color:#1b140d;cursor:pointer;transition:transform .1s,background .15s;}
+  .btn:hover{background:var(--copper-bright);}
+  .btn:active{transform:scale(.97);}
+  .btn.ghost{background:transparent;color:var(--copper-bright);}
+  .btn.ghost:hover{background:rgba(201,121,62,.12);}
+  .btn.small{padding:5px 11px;font-size:12px;}
+  .btn.danger{border-color:var(--low);color:var(--low);background:transparent;}
+  .btn.danger:hover{background:rgba(193,83,59,.12);}
+
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
+  .badge.ok{background:rgba(111,158,108,.15);color:var(--ok);}
+  .badge.over{background:rgba(201,162,62,.15);color:var(--over);}
+  .badge.low{background:rgba(193,83,59,.18);color:var(--low);}
+  .badge.nc{background:rgba(164,147,124,.15);color:var(--muted);}
+
+  .grid-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:18px;}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 18px;box-shadow:var(--shadow);}
+  .kpi .v{font-family:'Fraunces',Georgia,serif;font-size:24px;color:var(--copper-bright);}
+  .kpi .l{color:var(--muted);font-size:11.5px;margin-top:4px;}
+  .kpi.warn .v{color:var(--low);}
+
+  .warnbox{background:rgba(193,83,59,.1);border:1px solid rgba(193,83,59,.4);color:#7c3a28;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:13px;display:none;}
+  .warnbox ul{margin:6px 0 0 18px;padding:0;}
+  .meCountIn.missing{border-color:var(--low);background:rgba(193,83,59,.08);}
+
+  .formrow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px;}
+  .field{margin-bottom:10px;}
+  .field label,.formrow label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;}
+  .field input,.field select{width:100%;}
+  .formrow label{margin-bottom:5px;}
+  .formrow label.ck{display:flex;flex-direction:row;align-items:center;gap:7px;font-size:13px;text-transform:none;letter-spacing:0;color:var(--cream);padding-bottom:8px;}
+  .date-row{display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;}
+  .date-row label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  .date-row input[type=date]{border-radius:7px;}
+  .date-row label.ck{display:flex;flex-direction:row;align-items:center;gap:7px;font-size:13px;text-transform:none;letter-spacing:0;color:var(--cream);}
+
+  .searchwrap{position:relative;}
+  .dd{position:absolute;top:100%;left:0;right:0;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;box-shadow:0 12px 28px rgba(120,92,48,.25);z-index:40;max-height:220px;overflow:auto;display:none;}
+  .dd div{padding:8px 11px;cursor:pointer;font-size:13.5px;color:var(--cream);}
+  .dd div:hover{background:rgba(201,121,62,.15);}
+  .hint{font-size:12px;color:var(--muted);margin:8px 0 0;}
+  .rowdel{background:none;border:none;color:var(--low);cursor:pointer;font-weight:700;font-size:14px;padding:2px 6px;}
+  .rowdel:hover{background:rgba(193,83,59,.12);border-radius:5px;}
+  .rowedit{background:none;border:none;color:var(--copper-bright);cursor:pointer;font-size:13px;padding:2px 6px;}
+  .rowedit:hover{background:rgba(201,121,62,.15);border-radius:5px;}
+  tr.clickable{cursor:pointer;}
+  .scrollx{overflow-x:auto;}
+
+  /* recipe cards */
+  .recipe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;}
+  .recipe-card{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;}
+  .recipe-card h3{font-size:15.5px;}
+  .recipe-card .cat{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+  .recipe-card ul{list-style:none;margin:10px 0;padding:0;font-size:12.5px;color:var(--muted);flex:1;}
+  .recipe-card li{display:flex;justify-content:space-between;gap:10px;padding:2px 0;}
+  .recipe-card li.none{font-style:italic;}
+  .cplus{font-style:normal;color:var(--over);font-size:11px;}
+  .recipe-card .rc-money{display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12.5px;}
+  .recipe-card .rc-money b{color:var(--cream);}
+  .recipe-card .rc-actions{margin-top:10px;display:flex;gap:8px;}
+
+  /* sticky top bar */
+  .topwrap{position:sticky;top:0;z-index:100;background:var(--bg);padding:2px 0 12px;box-shadow:0 6px 14px rgba(140,105,50,.18);}
+  .topwrap .app-header{margin-bottom:0;border-bottom:none;padding-bottom:12px;}
+  .topwrap nav.tabs{margin-bottom:0;}
+  /* category chips */
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 14px;}
+  .chip{background:var(--panel-2);border:1px solid var(--line);color:#6b5325;border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;}
+  .chip:hover{color:var(--cream);border-color:var(--copper);}
+  .chip.on{background:var(--copper);border-color:var(--copper);color:#1b140d;}
+  .chipsrow{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;margin:2px 0 14px;}
+  .chipsrow .chips{flex:1 1 auto;margin:0;}
+  .tbl-search{margin-left:auto;background:var(--panel-2);border:1px solid var(--line);color:var(--cream);border-radius:20px;padding:6px 14px;font-size:12.5px;width:210px;}
+  /* admin locked mode: view-only */
+  body.locked .view input:not(.tbl-search),
+  body.locked .view select,
+  body.locked .view button:not(.keep){pointer-events:none;opacity:.45;}
+  body.locked .view button.keep{opacity:.9;}
+  /* staff mode: Daily Sales + Internal Movement (today only, enforced in JS) — rest view-only */
+  body.staff .view .card:not(.staff-allow) input:not(.tbl-search):not(.staff-ok),
+  body.staff .view .card:not(.staff-allow) select:not(.staff-ok),
+  body.staff .view .card:not(.staff-allow) button:not(.keep):not(.chip){pointer-events:none;opacity:.45;}
+  body.staff .view select.staff-ok{opacity:1;}
+  .cat-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+  .cat-row input{flex:1;}
+  .cat-count{color:var(--muted);font-size:12px;min-width:70px;text-align:right;}
+
+  /* modals */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(74,56,32,.45);backdrop-filter:blur(2px);z-index:300;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 16px;}
+  .modal-bg.active{display:flex;}
+  /* login-only gate: while locked out, the app is hidden and only the sign-in popup shows on a white page */
+  body.login-screen{background:#fff !important;}
+  body.login-screen > *:not(#adminModalBg){display:none !important;}
+  body.login-screen #adminModalBg{display:flex;background:#fff;backdrop-filter:none;align-items:center;}
+  body.login-screen #adminModalBg .modal-close{display:none;}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px;width:100%;max-width:620px;box-shadow:0 20px 60px rgba(90,66,32,.35);}
+  .modal h2{font-size:19px;margin-bottom:4px;}
+  .modal .sub{color:var(--muted);font-size:12.5px;margin-bottom:16px;}
+  .modal-close{float:right;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;}
+  .modal-close:hover{color:var(--cream);}
+  .ing-row{display:grid;grid-template-columns:2fr 1fr 76px 32px;gap:8px;align-items:center;margin-bottom:8px;}
+  .ing-row label{display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
+  .ing-row input[type=text],.ing-row input[type=number]{width:100%;padding:8px 9px;}
+  .ing-row .ck{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--cream);padding-bottom:8px;}
+  .line-unit{font-size:11px;color:var(--copper-bright);margin-top:4px;min-height:14px;}
+  .rm-btn{background:none;border:1px solid var(--line);color:var(--low);border-radius:6px;height:34px;cursor:pointer;font-size:14px;}
+  .rm-btn:hover{background:rgba(193,83,59,.12);}
+  .def-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;height:34px;min-width:40px;cursor:pointer;font-size:14px;}
+  .def-btn:hover{color:var(--cream);border-color:var(--cream);}
+  .def-btn.on{color:var(--copper-bright);border-color:var(--copper-bright);background:rgba(196,140,80,.14);}
+  .cost-preview{background:var(--panel-2);border:1px dashed var(--line);border-radius:8px;padding:12px 14px;margin-top:14px;font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 20px;}
+  .cost-preview div span{display:block;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;}
+  .cost-preview div b{font-family:'Fraunces',Georgia,serif;font-size:16px;color:var(--copper-bright);}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .empty-note{color:var(--muted);font-size:13px;padding:14px 0;text-align:center;}
+  .linkbtn{background:none;border:none;color:var(--copper-bright);cursor:pointer;font-size:inherit;font-weight:600;padding:0;text-align:left;}
+  .linkbtn:hover{text-decoration:underline;}
+
+  dialog{background:var(--panel);color:var(--cream);border:1px solid var(--line);border-radius:12px;padding:20px 22px;max-width:440px;box-shadow:0 20px 60px rgba(90,66,32,.35);}
+  dialog::backdrop{background:rgba(74,56,32,.5);}
+  dialog h2{margin-top:0;}
+  dialog p{font-size:13.5px;}
+</style>
+</head>
+<body>
+
+<div class="topwrap">
+<div class="app-header">
+  <div>
+    <h1>🍺 Bar Stock Control</h1>
+    <div class="tag">Daily sales, recipe-linked costing &amp; month stock reconcile</div>
+  </div>
+  <div class="header-stats">
+    <div class="stat-pill"><div class="n" id="hItems">0</div><div class="l">Menu items</div></div>
+    <div class="stat-pill"><div class="n" id="hIngs">0</div><div class="l">Ingredients</div></div>
+    <div class="stat-pill"><div class="n" id="hRev">0</div><div class="l">Month revenue</div></div>
+    <div class="stat-pill"><div class="n" id="hExp">0</div><div class="l">Expected closing</div></div>
+    <span class="save-flash" id="savedInfo"></span>
+    <button class="btn ghost small" id="adminBtn">🔒 Locked</button>
+  </div>
+</div>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="dash" class="on">Dashboard</button>
+  <button data-tab="sales">Daily Sales</button>
+  <button data-tab="consumption">Consumption</button>
+  <button data-tab="topsale">Top Sales</button>
+  <button data-tab="forecast">Forecast</button>
+  <button data-tab="mov">Internal Movement</button>
+  <button data-tab="stock">Stock Card</button>
+  <button data-tab="items">Menu Item Sale</button>
+  <button data-tab="recipe">Recipes</button>
+  <button data-tab="ing">Inventory</button>
+  <button data-tab="data">Data / Backup</button>
+</nav>
+</div>
+
+<div class="warnbox" id="warnbox"></div>
+
+<!-- ============ DASHBOARD ============ -->
+<div class="view on" id="sec-dash">
+  <div class="card staff-allow">
+    <div class="date-row">
+      <label>From</label>
+      <input type="date" id="dashFrom">
+      <label>To</label>
+      <input type="date" id="dashTo">
+      <button class="btn ghost small" id="dashToday">Today</button>
+      <button class="btn ghost small" id="dashMtd">MTD</button>
+      <button class="btn ghost small" id="dashChartBtn" title="Show / hide charts for the selected period">📊 Charts</button>
+      <span class="hint" id="dashRange" style="margin:0"></span>
+    </div>
+    <div class="chips" id="dashOutletChips" style="margin-bottom:14px"></div>
+    <div class="grid-stats" id="dashKpis"></div>
+  </div>
+  <div class="card" id="dashChartCard" style="display:none">
+    <div class="card-head"><div><h2>Charts — selected period</h2><p>Daily revenue, top menu items by revenue vs raw cost, and consumption raw cost by ingredient — for the period and outlet picked above.</p></div></div>
+    <div class="chart-grid">
+      <div class="chart-box"><h3>Daily revenue</h3><canvas id="chDaily"></canvas></div>
+      <div class="chart-box"><h3>Top menu items — revenue vs raw cost</h3><canvas id="chItems"></canvas></div>
+      <div class="chart-box"><h3>Top ingredients — consumption raw cost</h3><canvas id="chCons"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Sales — selected period</h2><p>Revenue and raw cost for every item sold in this period. Raw Cost includes the Condiment +5% markup.</p></div></div>
+    <div class="scrollx"><table id="tDaySales"></table></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Consumption — selected period</h2><p>Recipe consumption + OC (other) for this period — OC and Ent sales are included, so it can be higher than the Sales table above. Raw Cost Amount includes the Condiment +5% markup.</p></div></div>
+    <div class="scrollx"><table id="tDayCons"></table></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Month reconciliation</h2><p>For the outlet picked above: Opening + Purchase + TF-In + Issue (Store) − Sales − TF-Out − OC/Ent − Spoils = Expected Closing. Sales = units consumed via Daily Sales (POS qty × recipe).</p></div></div>
+    <div class="scrollx"><table id="tRecon"></table></div>
+  </div>
+</div>
+
+<!-- ============ DAILY SALES ============ -->
+<div class="view" id="sec-sales">
+  <div class="card staff-allow">
+    <div class="card-head"><div><h2>Add a single sale</h2><p>For items that are not on the Menu Item Sale list (they will show a warning until you add them there).</p></div></div>
+    <div class="formrow">
+      <label>Date <input type="date" id="sDate"></label>
+      <label>Outlet <select id="sOutlet" style="width:130px"></select></label>
+      <label style="min-width:220px">Menu Item
+        <span class="searchwrap">
+          <input type="text" id="sItem" placeholder="type to search…" style="width:100%" autocomplete="off">
+          <div class="dd" id="sItemDD"></div>
+        </span>
+      </label>
+      <label>Qty Sold <input type="number" id="sQty" step="any" min="0" style="width:90px"></label>
+      <label class="ck" style="padding-bottom:8px"><input type="checkbox" id="sTypeOC"> OC — no revenue</label>
+      <label class="ck" style="padding-bottom:8px"><input type="checkbox" id="sTypeEnt"> Ent — no revenue</label>
+      <button class="btn" id="sAdd">Add sale</button>
+      <button class="btn ghost small" id="sCancel" style="display:none">Cancel edit</button>
+    </div>
+    <p class="hint">Type letters or the POS code (example: co or 11) — the list shows matching items. Click a row in the log below to edit it.</p>
+  </div>
+  <div class="card staff-allow">
+    <div class="card-head"><div><h2>Sales log</h2><p>Everything saved, with the day's total.</p></div></div>
+    <div class="date-row">
+      <label>From</label>
+      <input type="date" id="logFrom">
+      <label>To</label>
+      <input type="date" id="logTo">
+      <button class="btn ghost small" id="logToday">Today</button>
+      <button class="btn ghost small" id="logMtd">MTD</button>
+      <button class="btn ghost small" id="logAll">All dates</button>
+      <label>Outlet <select id="logOutlet" style="width:140px"></select></label>
+    </div>
+    <div class="scrollx"><table id="tSales"></table></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Import sales from file (admin)</h2><p>Bulk-add sales from the Excel template — for example copying quantities from your POS report.</p></div></div>
+    <div class="formrow">
+      <button class="btn ghost small" id="btnSalesTpl">⬇ Download template</button>
+      <button class="btn ghost small" id="btnSalesImportPick">⬆ Import sales file</button>
+      <button class="btn ghost small" id="btnOutlets">⚙ Outlets</button>
+      <input type="file" id="fileSales" accept=".csv,.xls,.xml,.xlsx" style="display:none">
+    </div>
+    <p class="hint">Get the template, fill Date / Menu Item / Qty / Type (blank, OC or Ent), then Save As → “CSV UTF-8” or “XML Spreadsheet 2003” and import it here. Menu Item can be the item name or its POS number (example: 11 or Chang Beer) — both are in the template's Menu Items sheet. Dates accept 2026-09-06, 07-09-26 or real Excel date cells.</p>
+  </div>
+  <div class="card" style="display:none">
+    <div class="card-head">
+      <div><h2>Daily sales entry</h2><p>Pick the date, type the quantities sold, then press “Save day”. Off-menu items already saved for that date are kept.</p></div>
+      <span class="save-flash" id="dayFlash">Saved ✓</span>
+    </div>
+    <div class="date-row">
+      <label>Date</label>
+      <input type="date" id="salesDate">
+    </div>
+    <div class="scrollx"><table id="salesEntry"></table></div>
+    <div class="modal-actions" style="justify-content:flex-start">
+      <button class="btn" id="btnSaveDay">Save day</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CONSUMPTION ============ -->
+<div class="view" id="sec-consumption">
+  <div class="card staff-allow">
+    <div class="card-head"><div><h2>Consumption</h2><p>Ingredient consumption from recipes × sales — OC and Ent sales are included — plus manual OC (Other). Raw Cost Amount includes the Condiment +5% markup. Pick a date, or press Today / MTD.</p></div></div>
+    <div class="date-row">
+      <label>From</label>
+      <input type="date" id="conFrom">
+      <label>To</label>
+      <input type="date" id="conTo">
+      <label>Outlet</label>
+      <select id="conOutlet" style="width:140px"></select>
+      <button class="btn ghost small" id="conToday">Today</button>
+      <button class="btn ghost small" id="conMtd">MTD</button>
+      <span class="hint" id="conRange" style="margin:0"></span>
+    </div>
+    <div class="scrollx"><table id="tCons"></table></div>
+  </div>
+</div>
+
+<!-- ============ TOP SALES ============ -->
+<div class="view" id="sec-topsale">
+  <div class="card staff-allow">
+    <div class="card-head"><div><h2>Top sales</h2><p>Best-selling menu items for the selected period, ranked by revenue.</p></div></div>
+    <div class="date-row">
+      <label>From</label>
+      <input type="date" id="tsFrom">
+      <label>To</label>
+      <input type="date" id="tsTo">
+      <label>Outlet</label>
+      <select id="tsOutlet" style="width:140px"></select>
+      <button class="btn ghost small" id="tsToday">Today</button>
+      <button class="btn ghost small" id="tsMtd">MTD</button>
+      <span class="hint" id="tsRange" style="margin:0"></span>
+    </div>
+    <div class="scrollx"><table id="tTop"></table></div>
+  </div>
+</div>
+
+<!-- ============ FORECAST ============ -->
+<div class="view" id="sec-forecast">
+  <div class="card">
+    <div class="card-head"><div><h2>Inventory forecast — next 4 days</h2><p>Based on average daily consumption over the last 5 days — computed automatically from your sales and locked (no manual edits). Use the outlet buttons to forecast All outlets together or one outlet by itself — Stock now and Avg/day follow the pick. "Need 4 days" = how much you will use; "Suggest order" = how short you will be if you want 4 days covered.</p></div></div>
+    <div class="chips" id="fcOutletChips" style="margin-bottom:0"></div>
+    <div class="chipsrow">
+      <div class="chips" id="fcChips"></div>
+      <input type="text" id="searchForecast" class="tbl-search" placeholder="🔍 search ingredient…">
+    </div>
+    <div class="scrollx"><table id="tForecast"></table></div>
+  </div>
+</div>
+
+<!-- ============ INTERNAL MOVEMENT ============ -->
+<div class="view" id="sec-mov">
+  <div class="card staff-allow">
+    <div class="card-head"><div><h2>Stock movement</h2><p>Issue (Store) = stock from the main store (in). Pick the outlet the movement belongs to — it feeds that outlet's Stock Card. OC and Ent are recorded in Daily Sales with the OC / Ent tick.</p></div></div>
+    <div class="formrow">
+      <label>Date <input type="date" id="mDate"></label>
+      <label>Outlet <select id="mOutlet" style="width:130px"></select></label>
+      <label style="min-width:190px">Ingredient
+        <span class="searchwrap">
+          <input type="text" id="mIng" placeholder="type to search…" style="width:100%" autocomplete="off">
+          <div class="dd" id="mIngDD"></div>
+        </span>
+      </label>
+      <label>Purchase <input type="number" id="mP" step="any" style="width:80px"></label>
+      <label>TF-In <input type="number" id="mTI" step="any" style="width:70px"></label>
+      <label>Issue (Store) <input type="number" id="mIS" step="any" style="width:80px"></label>
+      <label>TF-Out <input type="number" id="mTO" step="any" style="width:70px"></label>
+      <label>Spoils <input type="number" id="mSP" step="any" style="width:70px"></label>
+      <label>Note <input type="text" id="mNote" style="width:130px"></label>
+      <button class="btn" id="mAdd">Add movement</button>
+      <button class="btn ghost small" id="mCancel" style="display:none">Cancel edit</button>
+    </div>
+  </div>
+  <div class="card staff-allow">
+    <div class="card-head"><div><h2>Movement log</h2><p>Movement totals per outlet and ingredient feed each outlet's Stock Card. Use the outlet buttons to see all movements or just one outlet's.</p></div></div>
+    <div class="date-row">
+      <label class="ck"><input type="checkbox" id="mAll"> Show all dates</label>
+    </div>
+    <div class="chips" id="mLogOutletChips" style="margin:0 0 12px"></div>
+    <div class="scrollx"><table id="tMov"></table></div>
+  </div>
+</div>
+
+<!-- ============ STOCK CARD ============ -->
+<div class="view" id="sec-stock">
+  <div class="card">
+    <div class="card-head">
+      <div><h2>Stock card</h2><p>Expected Closing = Opening + Purchase + TF-In + Issue (Store) − Sales − TF-Out − OC − Ent − Spoils. Sales = units consumed via Daily Sales (POS qty × recipe). Every outlet keeps its own card — pick it below to see and count its stock. "All outlets" adds every outlet together; the count column needs a single outlet. Press 🗓 Month end for the guided count — it checks that every ingredient of every outlet is counted before closing the month.</p></div>
+    </div>
+    <div class="date-row">
+      <label>Outlet</label>
+      <select id="stkOutlet" class="staff-ok" style="width:170px"></select>
+      <button class="btn ghost small" id="stkOutletCfg" title="Add, rename, delete or set the default outlet">⚙ Outlets</button>
+      <button class="btn" id="btnMonthEnd">🗓 Month end</button>
+      <input type="text" id="searchStock" class="tbl-search" placeholder="🔍 search ingredient…" style="max-width:230px">
+    </div>
+    <div class="scrollx"><table id="tStock"></table></div>
+  </div>
+</div>
+
+<!-- ============ MENU ITEM SALE ============ -->
+<div class="view" id="sec-items">
+  <div class="card">
+    <div class="card-head">
+      <div><h2>Item Sale — menu master</h2><p>Cost Price = recipe cost per portion (Sub Unit Cost × Qty, +5% where Condiment is ticked). Cost % = Cost Price ÷ Selling Price.</p></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn ghost" id="itemCatBtn">⚙ Categories</button>
+        <button class="btn" id="itemAddBtn">+ Add menu item</button>
+      </div>
+    </div>
+    <div class="chipsrow">
+      <div class="chips" id="itemChips"></div>
+      <input type="text" id="searchItems" class="tbl-search" placeholder="🔍 search item / POS…">
+    </div>
+    <div class="scrollx"><table id="tItems"></table></div>  </div>
+</div>
+
+<!-- ============ RECIPES ============ -->
+<div class="view" id="sec-recipe">
+  <div class="card">
+    <div class="card-head">
+      <div><h2>Recipes</h2><p>One card per menu item. Cost per portion is automatic from ingredient Sub Unit Costs (+5% on ticked lines).</p></div>
+      <button class="btn" id="recAddBtn">+ New recipe</button>
+    </div>
+    <div class="chipsrow">
+      <div class="chips" id="recChips"></div>
+      <input type="text" id="searchRecs" class="tbl-search" placeholder="🔍 search recipe…">
+    </div>
+    <div class="recipe-grid" id="recipeGrid"></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Recipe change log</h2><p>Every time a recipe is created, updated or deleted — with date and time.</p></div></div>
+    <div class="scrollx"><table id="tRecLog"></table></div>
+  </div>
+</div>
+
+<!-- ============ INVENTORY ============ -->
+<div class="view" id="sec-ing">
+  <div class="card">
+    <div class="card-head">
+      <div><h2>Ingredients — stock master</h2><p>Unit = bottle size (700 for a 700 ml bottle, 1 for one bottle/can). Sub Unit Cost = Unit Cost ÷ Unit (cost per ml) — automatic. Opening Qty is kept per outlet — edits here apply to the outlet picked below.</p></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn ghost" id="ingCatBtn">⚙ Categories</button>
+        <button class="btn" id="ingAddBtn">+ Add ingredient</button>
+      </div>
+    </div>
+    <div class="date-row">
+      <label>Outlet</label>
+      <select id="ingOutlet" class="staff-ok" style="width:170px"></select>
+      <button class="btn ghost small" id="ingOutletCfg" title="Add, rename, delete or set the default outlet">⚙ Outlets</button>
+      <button class="btn ghost small" id="btnCountTpl">⬇ Count template</button>
+      <button class="btn ghost small" id="btnCountImportPick">⬆ Import counts</button>
+      <input type="file" id="fileCount" accept=".csv,.xls,.xml" style="display:none">
+    </div>
+    <div class="chipsrow">
+      <div class="chips" id="ingChips"></div>
+      <input type="text" id="searchIngs" class="tbl-search" placeholder="🔍 search ingredient…">
+    </div>
+    <div class="scrollx"><table id="tIngs"></table></div>
+  </div>
+</div>
+
+<!-- ============ DATA ============ -->
+<div class="view" id="sec-data">
+  <div class="card">
+    <div class="card-head"><div><h2>Month</h2></div></div>
+    <div class="formrow">
+      <label>Month title <input type="text" id="dMonth" style="width:180px"></label>
+      <div class="stat-pill"><div class="n" id="dCounts" style="font-size:14px"></div><div class="l">Entries saved</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Backup — important</h2></div></div>
+    <p style="max-width:760px;font-size:13.5px;color:var(--muted)">This app stores your data inside this browser on this computer. <b style="color:var(--cream)">Click "Download backup" regularly</b> (at least weekly and at month end) and keep the file — if the browser data is cleared, you can restore everything with "Load backup".</p>
+    <div class="formrow" style="margin-top:10px">
+      <button class="btn keep" id="btnExport">⬇ Download backup</button>
+      <button class="btn keep" id="btnExcel">⬇ Export to Excel</button>
+      <button class="btn ghost" id="btnImportPick">⬆ Load backup</button>
+      <input type="file" id="fileImport" accept=".json,application/json" style="display:none">
+    </div>
+    <p class="hint" id="excelAutoSt">Excel auto-save <b>Bar_Stock_Control_Auto.xlsx</b> · checking server…</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>New month</h2></div></div>
+    <p style="max-width:760px;font-size:13.5px;color:var(--muted)">Starts a fresh month, per outlet: last month's counts (or expected closing where not counted) become that outlet's new Opening, and sales / movements / counts are cleared. Download a backup first!</p>
+    <p><button class="btn danger" id="btnNewMonth">Start new month</button></p>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Closed months — history</h2><p>Every finished month is kept here automatically — revenue, sales and movement counts, and the stock reconciliation per outlet. It is saved at the moment you do "Complete month end" or "Start new month", so past months stay viewable inside the app — no backup file is needed just to look back at a closed month.</p></div></div>
+    <div class="scrollx"><table id="tMonthHistList"></table></div>
+  </div>
+  <div class="card" id="activityCard">
+    <div class="card-head"><div><h2>Activity log</h2><p>Latest 100 actions — logins, sales, movements, edits, deletions, month end. Visible to Admin only.</p></div></div>
+    <div class="scrollx"><table id="tActivity"></table></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Reset</h2></div></div>
+    <p><button class="btn danger" id="btnReset">Reset to the original sample data</button></p>
+  </div>
+</div>
+
+<!-- ============ RECIPE MODAL ============ -->
+<div class="modal-bg" id="recModalBg">
+  <div class="modal">
+    <button class="modal-close" data-close="recModalBg">&times;</button>
+    <h2 id="recModalTitle">New recipe</h2>
+    <div class="sub">Build the recipe from your ingredient list — the cost updates live as you add lines.</div>
+    <div class="field">
+      <label>Menu Item</label>
+      <span class="searchwrap" style="display:block">
+        <input type="text" id="recItem" placeholder="type to search…" style="width:100%" autocomplete="off">
+        <div class="dd" id="recItemDD"></div>
+      </span>
+      <div class="hint" id="recItemInfo"></div>
+    </div>
+    <div class="field">
+      <label>Category</label>
+      <span class="searchwrap" style="display:block">
+        <input type="text" id="recCat" placeholder="type to search — or type a new name" style="width:100%" autocomplete="off">
+        <div class="dd" id="recCatDD"></div>
+      </span>
+    </div>
+    <div class="field">
+      <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;text-transform:none;letter-spacing:0;color:var(--cream);cursor:pointer;margin-bottom:6px"><input type="checkbox" id="recVat" style="margin-top:2px"> Selling price <b>&nbsp;includes VAT 7%</b>&nbsp;— Cost % is calculated with the ex-VAT price</label>
+      <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;text-transform:none;letter-spacing:0;color:var(--cream);cursor:pointer"><input type="checkbox" id="recNoVat" style="margin-top:2px"> Selling price <b>&nbsp;excludes VAT</b>&nbsp;— Cost % uses the entered price directly</label>
+    </div>
+    <div style="margin-top:6px;">
+      <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">Ingredients (qty per portion)</label>
+      <div id="recLines"></div>
+      <button class="btn ghost small" id="recAddLine" type="button">+ Add ingredient line</button>
+    </div>
+    <div class="cost-preview">
+      <div><span>Recipe cost</span><b id="prevCost">0.00</b></div>
+      <div><span id="prevPriceLbl">Selling price</span><b id="prevPrice">0.00</b></div>
+      <div><span>Cost %</span><b id="prevPct">0%</b></div>
+      <div><span>Margin</span><b id="prevMargin">0.00</b></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close="recModalBg">Cancel</button>
+      <button class="btn" id="recSave">Save recipe</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ INGREDIENT MODAL ============ -->
+<div class="modal-bg" id="ingModalBg">
+  <div class="modal">
+    <button class="modal-close" data-close="ingModalBg">&times;</button>
+    <h2 id="ingModalTitle">Add ingredient</h2>
+    <div class="sub">Sub Unit Cost = Unit Cost ÷ Unit — this is what every recipe cost uses.</div>
+    <div class="field"><label>Ingredient name</label><input id="ngName" placeholder="e.g. Vodka" style="width:100%"></div>
+    <div class="field">
+      <label>Category</label>
+      <select id="ngCategory" style="width:100%"></select>
+      <input id="ngCategoryNew" placeholder="type the new category name" style="width:100%;display:none;margin-top:8px">
+    </div>
+    <div class="formrow">
+      <label>Unit name <input type="text" id="ngUnitName" placeholder="ml, bottle, can…" style="width:140px"></label>
+      <label>Unit size <input type="number" id="ngUnit" step="any" placeholder="e.g. 700" style="width:110px"></label>
+      <label>Unit Cost <input type="number" id="ngCost" step="any" placeholder="cost per bottle" style="width:130px"></label>
+      <label>Opening Qty <input type="number" id="ngOpen" step="any" placeholder="opening" style="width:120px"></label>
+    </div>
+    <div class="hint" id="ngSubInfo"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close="ingModalBg">Cancel</button>
+      <button class="btn" id="ngSave">Save ingredient</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MENU ITEM MODAL ============ -->
+<div class="modal-bg" id="itemModalBg">
+  <div class="modal">
+    <button class="modal-close" data-close="itemModalBg">&times;</button>
+    <h2 id="itemModalTitle">Add menu item</h2>
+    <div class="sub">The item appears immediately in Daily Sales and in the item search.</div>
+    <div class="formrow">
+      <label>POS code <input type="text" id="miPos" style="width:80px"></label>
+      <label style="flex:1;min-width:200px">Item name <input type="text" id="miName" style="width:100%"></label>
+    </div>
+    <div class="formrow">
+      <label>Category
+        <select id="miCategory" style="width:160px"></select>
+        <input type="text" id="miCategoryNew" placeholder="new category name" style="width:150px;display:none;margin-top:8px">
+      </label>
+      <label>Selling price <input type="number" id="miPrice" step="any" style="width:120px"></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close="itemModalBg">Cancel</button>
+      <button class="btn" id="miSave">Save menu item</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CATEGORY MODAL ============ -->
+<div class="modal-bg" id="catModalBg">
+  <div class="modal" style="max-width:520px">
+    <button class="modal-close" data-close="catModalBg">&times;</button>
+    <h2 id="catModalTitle">Categories</h2>
+    <div class="sub">Rename a category and every item in it moves too. Delete only works when nothing uses the category.</div>
+    <div id="catRows"></div>
+    <div class="formrow" style="margin-top:12px">
+      <label style="flex:1;min-width:180px">New category name <input type="text" id="catNewName" style="width:100%"></label>
+      <button class="btn" id="catAddBtn">+ Add category</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close="catModalBg">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ LOGIN MODAL ============ -->
+<div class="modal-bg" id="adminModalBg">
+  <div class="modal" style="max-width:380px">
+    <button class="modal-close" data-close="adminModalBg">&times;</button>
+    <h2 id="loginTitle">Sign in</h2>
+    <div class="sub" id="loginInfo">Enter the Admin or Staff password.</div>
+    <div class="field" id="loginPwWrap"><label>Password</label><input type="password" id="adminPass" style="width:100%" autocomplete="off"></div>
+    <div id="pwChange" style="display:none;margin-bottom:10px;border-top:1px solid var(--line);padding-top:10px">
+      <div class="field"><label>New admin password (leave blank to keep)</label><input type="password" id="newPwAdmin" style="width:100%" autocomplete="off"></div>
+      <div class="field"><label>New staff password (leave blank to keep)</label><input type="password" id="newPwStaff" style="width:100%" autocomplete="off"></div>
+      <button class="btn ghost small" id="pwSave">Save passwords</button>
+    </div>
+    <div class="modal-actions" style="justify-content:space-between">
+      <button class="btn danger" id="loginOut" style="display:none">Log out</button>
+      <span style="flex:1"></span>
+      <button class="btn ghost small" id="pwToggle" style="display:none">Change passwords</button>
+      <button class="btn" id="adminUnlock">Sign in</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CONSUMPTION DETAIL MODAL ============ -->
+<div class="modal-bg" id="consModalBg">
+  <div class="modal" style="max-width:660px">
+    <button class="modal-close" data-close="consModalBg">&times;</button>
+    <h2 id="consDlgTitle">Consumption detail</h2>
+    <div class="sub" id="consDlgSub"></div>
+    <div class="scrollx"><table id="tConsDetail" style="width:100%"></table></div>
+    <div class="modal-actions"><button class="btn ghost" data-close="consModalBg">Close</button></div>
+  </div>
+</div>
+
+<!-- ============ MONTH END MODAL ============ -->
+<div class="modal-bg" id="meModalBg">
+  <div class="modal" style="max-width:760px">
+    <button class="modal-close" data-close="meModalBg">&times;</button>
+    <h2>Month end — count your stock</h2>
+    <div class="sub">Pick an outlet and type the real counted quantity for every ingredient. Month end can only finish when every ingredient of every outlet has an Actual Count.</div>
+    <div class="date-row">
+      <label>Outlet</label>
+      <select id="meOutlet" style="width:170px"></select>
+      <span class="hint" id="meProgress" style="margin:0"></span>
+    </div>
+    <div class="scrollx" style="max-height:400px;overflow-y:auto"><table id="tMonthEnd"></table></div>
+    <div class="warnbox" id="meWarn"></div>
+    <div class="modal-actions" style="justify-content:space-between">
+      <button class="btn ghost" id="meCheck">✓ Check counts</button>
+      <span style="flex:1"></span>
+      <button class="btn ghost small" id="meTpl">⬇ Template</button>
+      <button class="btn ghost small" id="meImportPick">⬆ Import</button>
+      <input type="file" id="fileCountMe" accept=".csv,.xls,.xml" style="display:none">
+      <button class="btn" id="meFinish">Complete month end →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ OUTLETS MODAL ============ -->
+<div class="modal-bg" id="outletModalBg">
+  <div class="modal" style="max-width:540px">
+    <button class="modal-close" data-close="outletModalBg">&times;</button>
+    <h2>Outlets — setup</h2>
+    <div class="sub">Outlets are your selling points (bars / branches) — add one for every place you sell or hold stock (for example “WFH”). Each outlet keeps its own Stock Card: its own opening, movements and month-end count. Renaming moves its sales, movements and stock; deleting merges them into another outlet. Press ★ to make an outlet the default one the app opens on.</div>
+    <div id="outletRows"></div>
+    <div class="formrow" style="margin-top:10px">
+      <label style="flex:1">New outlet name <input id="outletNewName" style="width:100%" placeholder="type a name, then Add outlet or press Enter"></label>
+      <button class="btn" id="outletAddBtn" style="align-self:flex-end">Add outlet</button>
+    </div>
+    <div class="modal-actions">
+      <span class="hint" id="outletHint" style="margin:0 auto 0 0;align-self:center"></span>
+      <button class="btn ghost" data-close="outletModalBg">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MONTH HISTORY MODAL ============ -->
+<div class="modal-bg" id="mhModalBg">
+  <div class="modal" style="max-width:960px">
+    <button class="modal-close" data-close="mhModalBg">&times;</button>
+    <h2 id="mhTitle">Closed month</h2>
+    <div class="sub" id="mhSub"></div>
+    <div class="date-row">
+      <label>Outlet</label>
+      <select id="mhOutlet" style="width:180px"></select>
+      <span class="hint" id="mhOutletHint" style="margin:0"></span>
+    </div>
+    <div class="scrollx" style="max-height:460px;overflow-y:auto"><table id="tMonthHist"></table></div>
+    <div class="modal-actions" style="justify-content:space-between">
+      <button class="btn ghost small" id="mhCsv">⬇ Save this month (.json)</button>
+      <span style="flex:1"></span>
+      <button class="btn ghost" data-close="mhModalBg">Close</button>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <h2 id="dlgTitle" style="margin-top:0"></h2>
+  <p id="dlgBody"></p>
+  <p style="display:flex;gap:10px;justify-content:flex-end;margin:0">
+    <button class="btn ghost" id="dlgNo">Cancel</button>
+    <button class="btn" id="dlgYes">Yes, continue</button>
+  </p>
+</dialog>
+
+<script>
+"use strict";
+const SEED = {"version": 1, "monthTitle": "September 2026", "items": [{"pos": "11", "name": "chang Beer", "category": "Beer", "price": 120}, {"pos": "12", "name": "leo", "category": "Beer", "price": 180}, {"pos": "13", "name": "heiken", "category": "Beer", "price": 180}, {"pos": "14", "name": "sigh", "category": "Beer", "price": 180}, {"pos": "20", "name": "Gin & Tonic", "category": "Cocktail", "price": 150}, {"pos": "21", "name": "Margarita", "category": "Cocktail", "price": 180}, {"pos": "22", "name": "Mojito", "category": "Cocktail", "price": 200}, {"pos": "23", "name": "Rum & Coke", "category": "Cocktail", "price": 160}, {"pos": "24", "name": "Tequila Sunrise", "category": "Cocktail", "price": 190}, {"pos": "25", "name": "Vodka Soda", "category": "Cocktail", "price": 150}, {"pos": "26", "name": "Whisky Sour", "category": "Cocktail", "price": 170}, {"pos": "30", "name": "Coca Cola", "category": "Soft drink", "price": 100}, {"pos": "31", "name": "Coca zero", "category": "Soft drink", "price": 120}, {"pos": "32", "name": "Sprite", "category": "Soft drink", "price": 120}, {"pos": "33", "name": "fanta", "category": "Soft drink", "price": 120}, {"pos": "34", "name": "Ginger", "category": "Soft drink", "price": 120}, {"pos": "34", "name": "tonic a", "category": "Soft drink", "price": 100}, {"pos": "40", "name": "Chardony pato", "category": "Wine", "price": 3000}, {"pos": "41", "name": "carbonet pato", "category": "Wine", "price": 3100}], "ingredients": [{"name": "Beer", "category": "beer", "unit": 1.0, "unitCost": 35}, {"name": "heiken", "category": "beer", "unit": 1.0, "unitCost": 35}, {"name": "leo", "category": "beer", "unit": 1.0, "unitCost": 34}, {"name": "sigh", "category": "beer", "unit": 1.0, "unitCost": 36}, {"name": "Gin a", "category": "gin", "unit": 700.0, "unitCost": 7000}, {"name": "Gin b", "category": "gin", "unit": 750.0, "unitCost": 750}, {"name": "Gin bombay", "category": "gin", "unit": 700.0, "unitCost": 700}, {"name": "Lime Juice", "category": "Ingredient", "unit": 700.0, "unitCost": 100}, {"name": "Orange Juice", "category": "Ingredient", "unit": 1000.0, "unitCost": 100}, {"name": "Sugar Syrup", "category": "Ingredient", "unit": 1000.0, "unitCost": 100}, {"name": "Rum a", "category": "rum", "unit": 700.0, "unitCost": 700}, {"name": "Rum b", "category": "rum", "unit": 700.0, "unitCost": 700}, {"name": "White Rum", "category": "rum", "unit": 700.0, "unitCost": 700}, {"name": "Coca cola", "category": "Soft drink", "unit": 1.0, "unitCost": 12}, {"name": "Coca zero", "category": "Soft drink", "unit": 1.0, "unitCost": 12.1}, {"name": "fanta", "category": "Soft drink", "unit": 1.0, "unitCost": 12}, {"name": "Ginger", "category": "Soft drink", "unit": 1.0, "unitCost": 11}, {"name": "Soda Water", "category": "Soft drink", "unit": 1.0, "unitCost": 12}, {"name": "Sprite", "category": "Soft drink", "unit": 1.0, "unitCost": 11}, {"name": "Tonic Water", "category": "Soft drink", "unit": 1.0, "unitCost": 12}, {"name": "tonica a", "category": "Soft drink", "unit": 1.0, "unitCost": 12}, {"name": "Tequila a", "category": "Tequila", "unit": 700.0, "unitCost": 700}, {"name": "Tequila b", "category": "Tequila", "unit": 700.0, "unitCost": 700}, {"name": "Vodka", "category": "Vodka", "unit": 700.0, "unitCost": 700}, {"name": "Vodka a", "category": "Vodka", "unit": 700.0, "unitCost": 700}, {"name": "Vodka b", "category": "Vodka", "unit": 700.0, "unitCost": 700}, {"name": "Whisky", "category": "Whisky", "unit": 750.0, "unitCost": 700}, {"name": "Whisky a", "category": "Whisky", "unit": 700.0, "unitCost": 700}, {"name": "Chardony pato", "category": "white wine", "unit": 1.0, "unitCost": 1500}, {"name": "carbonet pato", "category": "wine Red", "unit": 1.0, "unitCost": 1500}], "openings": {"Beer": 40, "heiken": 5, "leo": 5, "sigh": 5, "Gin a": 1400, "Gin b": 1400, "Gin bombay": 1400, "Lime Juice": 1400, "Orange Juice": 1400, "Sugar Syrup": 1400, "Rum a": 1400, "Rum b": 1400, "White Rum": 1400, "Coca cola": 10, "Coca zero": 10, "fanta": 5, "Ginger": 5, "Soda Water": 10, "Sprite": 10, "Tonic Water": 10, "tonica a": 5, "Tequila a": 1400, "Tequila b": 1400, "Vodka": 1400, "Vodka a": 1400, "Vodka b": 1400, "Whisky": 1400, "Whisky a": 1400, "Chardony pato": 10, "carbonet pato": 10}, "counts": {"Beer": 10, "Gin a": 1000, "Gin b": 1000, "Gin bombay": 1000, "Lime Juice": 1000, "Orange Juice": 1000, "Sugar Syrup": 1000, "Rum a": 1000, "Rum b": 1000, "White Rum": 1000, "Coca cola": 10, "Coca zero": 10}, "recipes": [{"menu": "chang Beer", "ingredient": "Beer", "qty": 1, "condiment": true}, {"menu": "leo", "ingredient": "Vodka", "qty": 45, "condiment": true}, {"menu": "heiken", "ingredient": "Soda Water", "qty": 1, "condiment": true}, {"menu": "sigh", "ingredient": "Gin bombay", "qty": 45, "condiment": true}, {"menu": "Gin & Tonic", "ingredient": "Gin a", "qty": 1, "condiment": true}, {"menu": "Gin & Tonic", "ingredient": "leo", "qty": 45, "condiment": true}, {"menu": "Margarita", "ingredient": "Coca cola", "qty": 1, "condiment": true}, {"menu": "Mojito", "ingredient": "Whisky", "qty": 45, "condiment": true}, {"menu": "Rum & Coke", "ingredient": "Lime Juice", "qty": 25, "condiment": true}, {"menu": "Tequila Sunrise", "ingredient": "Sugar Syrup", "qty": 15, "condiment": true}, {"menu": "Vodka Soda", "ingredient": "Tequila a", "qty": 45, "condiment": true}, {"menu": "Whisky Sour", "ingredient": "Lime Juice", "qty": 20, "condiment": true}, {"menu": "Coca Cola", "ingredient": "Sugar Syrup", "qty": 10, "condiment": true}, {"menu": "Coca zero", "ingredient": "Tequila a", "qty": 45, "condiment": true}, {"menu": "Sprite", "ingredient": "Orange Juice", "qty": 120, "condiment": true}, {"menu": "fanta", "ingredient": "White Rum", "qty": 45, "condiment": true}, {"menu": "Ginger", "ingredient": "Lime Juice", "qty": 25, "condiment": true}, {"menu": "tonic a", "ingredient": "Sugar Syrup", "qty": 15, "condiment": true}, {"menu": "Chardony pato", "ingredient": "Soda Water", "qty": 1, "condiment": false}, {"menu": "carbonet pato", "ingredient": "Coca cola", "qty": 1, "condiment": false}], "sales": [{"date": "2026-09-01", "item": "Vodka Soda", "qty": 12}, {"date": "2026-09-02", "item": "Vodka Soda", "qty": 10}, {"date": "2026-09-01", "item": "Gin & Tonic", "qty": 9}, {"date": "2026-09-02", "item": "Gin & Tonic", "qty": 11}, {"date": "2026-09-01", "item": "Rum & Coke", "qty": 15}, {"date": "2026-09-02", "item": "Rum & Coke", "qty": 13}, {"date": "2026-09-01", "item": "Whisky Sour", "qty": 6}, {"date": "2026-09-02", "item": "Whisky Sour", "qty": 8}, {"date": "2026-09-01", "item": "Margarita", "qty": 7}, {"date": "2026-09-02", "item": "Margarita", "qty": 6}, {"date": "2026-09-01", "item": "Tequila Sunrise", "qty": 5}, {"date": "2026-09-02", "item": "Tequila Sunrise", "qty": 4}, {"date": "2026-09-01", "item": "Mojito", "qty": 8}, {"date": "2026-09-02", "item": "Mojito", "qty": 9}, {"date": "2026-09-01", "item": "Bottled Beer", "qty": 22}, {"date": "2026-09-02", "item": "Bottled Beer", "qty": 25}, {"date": "2026-09-03", "item": "Chardony pato", "qty": 2}, {"date": "2026-09-04", "item": "Rum & Coke", "qty": 1}, {"date": "2026-09-04", "item": "Gin & Tonic", "qty": 1}], "movements": [{"date": "2026-09-01", "ingredient": "Vodka", "purchase": 1, "tfIn": 0, "issue": 0, "tfOut": 0, "oc": 0, "ent": 0, "spoils": 0, "note": ""}, {"date": "2026-09-01", "ingredient": "Coca cola", "purchase": 1, "tfIn": 0, "issue": 0, "tfOut": 0, "oc": 1, "ent": 0, "spoils": 0, "note": ""}, {"date": "2026-09-01", "ingredient": "Beer", "purchase": 10, "tfIn": 0, "issue": 0, "tfOut": 0, "oc": 1, "ent": 0, "spoils": 0, "note": ""}, {"date": "2026-09-02", "ingredient": "Orange Juice", "purchase": 0, "tfIn": 0, "issue": 0, "tfOut": 1500, "oc": 0, "ent": 0, "spoils": 0, "note": ""}, {"date": "2026-09-02", "ingredient": "Beer", "purchase": 10, "tfIn": 0, "issue": 0, "tfOut": 0, "oc": 0, "ent": 0, "spoils": 2, "note": "Broken bottles"}]};
+const KEY = "barStockControl.v1";
+/* Passwords are stored as SHA-256 hashes, never as plain text. Defaults can be changed by the Admin in the login dialog. */
+/* Bump PW_RESET_VERSION whenever the DEFAULT_PW hashes below change: on the next load every browser
+   that still carries an older password set in localStorage is moved onto these new defaults. */
+const PW_RESET_VERSION = 2;
+const DEFAULT_PW = {
+  admin: "a1b9f8cec1856b1c43f32f50a6743401400710f0322dc68780f7844940c2ae4e", /* admin001405 */
+  staff: "4e29a3161326999fa45b322609561d045e144dada9188283891305a7b3891617" /* staff99 */
+};
+
+/* ---------- state ---------- */
+function normalize(d){
+  if(!d.cats) d.cats={items:[],ings:[]};
+  if(!d.recipeLog) d.recipeLog=[];
+  /* Avg/day is computed automatically from sales — wipe any manual overrides saved by older versions */
+  d.forecastAvg={};
+  d.forecastAvgByOutlet={};
+  if(!d.passwords || d.pwResetVersion !== PW_RESET_VERSION){ d.passwords={admin:DEFAULT_PW.admin, staff:DEFAULT_PW.staff}; d.pwResetVersion=PW_RESET_VERSION; }
+  if(!d.actionLog) d.actionLog=[];
+  /* Closed months are stored in a dedicated key (ARCH_KEY) so the frequently-saved main
+     state stays small; any d.archives from older data/backups is lifted out by adoptParsed(). */
+  delete d.archives;
+  if(!d.outlets || !d.outlets.length) d.outlets=["Outlet A","Outlet B"];
+  /* The default outlet is the one the app opens on — set it in ⚙ Outlets. Compare names with a
+     plain lowercase/trim here: the shared helpers (li/$) are declared further down this file and
+     normalize() already runs while that code is still in the temporal dead zone. */
+  const sameOutlet=(a,b)=>String(a==null?"":a).toLowerCase().trim()===String(b==null?"":b).toLowerCase().trim();
+  if(!d.defaultOutlet || !d.outlets.some(o=>sameOutlet(o,d.defaultOutlet))) d.defaultOutlet=d.outlets[0];
+  (d.sales||[]).forEach(s=>{ if(!s.outlet) s.outlet=d.outlets[0]; });
+  (d.movements||[]).forEach(v=>{ if(!v.outlet) v.outlet=d.outlets[0]; });
+  /* openings & counts are kept per outlet — migrate the old flat {ingredient: qty} to the first outlet */
+  const flatMap=o=>!!o && Object.keys(o).some(k=>!o[k]||typeof o[k]!=="object");
+  const wrap=(o,key)=>{
+    if(flatMap(o)){ const first={}; first[d.outlets[0]]=o; d[key]=first; }
+    if(!d[key] || flatMap(d[key])) { const first=d[key]&&flatMap(d[key])?d[key]:{}; d[key]={}; d[key][d.outlets[0]]=first; }
+    d.outlets.forEach(ot=>{ if(!d[key][ot] || typeof d[key][ot]!=="object") d[key][ot]={}; });
+  };
+  wrap(d.openings,"openings");
+  wrap(d.counts,"counts");
+  return d;
+}
+/* Closed-months history is stored under its own localStorage key, so normal saves never
+   re-serialize the whole history — it only changes at month close / history edits. */
+const ARCH_KEY = KEY + ".arch";
+function loadArch(){
+  try{
+    const r = localStorage.getItem(ARCH_KEY);
+    if(r){ const a = JSON.parse(r); if(Array.isArray(a)) return a; }
+  }catch(e){}
+  return [];
+}
+let ARCH = loadArch();
+function persistArchives(){
+  try{ localStorage.setItem(ARCH_KEY, JSON.stringify(ARCH)); }catch(e){}
+}
+/* Old data / backups may embed archives inside the main object — lift them into ARCH. */
+function adoptParsed(d){
+  if(d && Array.isArray(d.archives) && d.archives.length){ ARCH = d.archives; persistArchives(); }
+  delete d.archives;
+  return normalize(d);
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){ const d = JSON.parse(raw); if(d && Array.isArray(d.items)) return adoptParsed(d); }
+  }catch(e){}
+  return normalize(JSON.parse(JSON.stringify(SEED)));
+}
+let S = loadState();
+let editingSale = -1, editingMov = -1, editingIng = -1, editingItem = -1;
+let role = sessionStorage.getItem("barRole") || "none"; // none | staff | admin
+
+let saveTimer=null;
+function saveNow(){
+  saveTimer=null;
+  save();
+}
+/* Coalesce rapid edits (typing several stock counts in a row) into one localStorage write. */
+function saveSoon(){
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer=setTimeout(saveNow,600);
+}
+function flushPendingSave(){
+  if(saveTimer){ clearTimeout(saveTimer); saveTimer=null; save(); }
+}
+function save(){
+  try{
+    invalidateCaches(); /* any data mutation that reaches save() invalidates the shared caches */
+    localStorage.setItem(KEY, JSON.stringify(S));
+    const f=$("savedInfo"); f.textContent="✓ saved"; f.classList.add("show");
+    setTimeout(()=>f.classList.remove("show"),1800);
+    scheduleExcelAutoPush();
+  }catch(e){
+    const f=$("savedInfo"); f.textContent="⚠ SAVE FAILED — use Download backup!"; f.classList.add("show");
+  }
+}
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const li = s => String(s||"").toLowerCase().trim();
+const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const n1 = v => { v=+v; if(!isFinite(v)) v=0; return Math.round(v*10)/10; };
+const money = v => (+v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const qtyf = v => { const r=n1(v); return (r%1===0)? r.toLocaleString() : r.toLocaleString(undefined,{minimumFractionDigits:1,maximumFractionDigits:1}); };
+const todayISO = () => {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+};
+const addDaysISO = (iso,n) => {
+  const d = new Date(iso+"T00:00:00");
+  d.setDate(d.getDate()+n);
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+};
+
+function subUnit(ing){ const u=+ing.unit; return (+ing.unitCost||0)/(u>0?u:1); }
+function findItem(name){ const t=li(name); return (_L && _L.it[t]) || null; }
+function findIng(name){ const t=li(name); return (_L && _L.ing[t]) || null; }
+/* import helper: the Menu Item column may hold the item name or its POS number */
+function findItemForImport(raw){
+  const t=li(raw);
+  if(!t) return null;
+  const byName=findItem(t);
+  if(byName) return byName;
+  const num=parseFloat(String(raw).replace(",","."));
+  if(isFinite(num)) return S.items.find(i=>parseFloat(i.pos)===num)||null;
+  return S.items.find(i=>li(i.pos)===t)||null;
+}
+
+/* ---------- computations ----------
+   E: shared in-memory indexes (lowercase name → record, sub-unit cost, recipe lines, cost price)
+      replace the repeated li() + Array.find scans.
+   B: heavy totals are aggregated once per data change and cached per request key, so the ~15
+      views in renderAll() share scan results instead of each re-scanning S.sales / S.movements.
+   invalidateCaches() runs at the top of renderAll() and inside save() — i.e. after every data
+   mutation. Returned maps/rows are treated as read-only by every view. */
+let _L=null;
+const _ALL_AGG=new Map();    // all-time aggregates per outlet
+const _RANGE_AGG=new Map();  // date-window aggregates per (from,to,outlet)
+const _STOCK_ROWS=new Map(); // stock card rows per outlet
+function rebuildLookups(){
+  const it={}, ing={}, sub={}, price={}, cost={}, rec={};
+  for(const i of S.items){ const k=li(i.name); if(!k) continue; it[k]=i; price[k]=+i.price||0; }
+  for(const g of S.ingredients){ const k=li(g.name); if(!k) continue; ing[k]=g; sub[k]=subUnit(g); }
+  for(const r of S.recipes){
+    const mk=li(r.menu), ik=li(r.ingredient);
+    if(!mk || !ik) continue;
+    const lines=rec[mk] || (rec[mk]=[]);
+    lines.push({ik, qty:+r.qty||0, mul:r.condiment?1.05:1, u:sub[ik]||0});
+  }
+  for(const mk in rec){ let c=0; for(const l of rec[mk]) c += l.qty*l.mul*l.u; if(c) cost[mk]=c; }
+  _L={it,ing,sub,price,cost,rec};
+}
+function invalidateCaches(){
+  rebuildLookups();
+  _ALL_AGG.clear(); _RANGE_AGG.clear(); _STOCK_ROWS.clear();
+}
+/* one all-time pass per outlet: sold qty by type, ingredient consumption by type, movements */
+function aggFor(outlet){
+  if(!_L) rebuildLookups();
+  const key=(outlet && outlet!=="all")? li(outlet) : "all";
+  const hit=_ALL_AGG.get(key); if(hit) return hit;
+  const of=(key==="all")? null : key;
+  const sold={sale:{},oc:{},ent:{}};
+  for(const s of S.sales){
+    if(of && li(s.outlet||"")!==of) continue;
+    const k=li(s.item); if(!k) continue;
+    const st=s.type||"sale";
+    const t=(st==="sale"||st==="oc"||st==="ent")? st : "other";
+    if(t==="other") continue;
+    sold[t][k]=(sold[t][k]||0)+(+s.qty||0);
+  }
+  const cons={sale:{},oc:{},ent:{}};
+  for(const t in sold){
+    for(const mk in sold[t]){
+      const lines=_L.rec[mk]; if(!lines) continue;
+      const q=sold[t][mk];
+      for(const l of lines) cons[t][l.ik]=(cons[t][l.ik]||0)+l.qty*q;
+    }
+  }
+  const mv={};
+  for(const v of S.movements){
+    if(of && li(v.outlet||"")!==of) continue;
+    const k=li(v.ingredient); if(!k) continue;
+    const m=mv[k] || (mv[k]={purchase:0,tfIn:0,issue:0,tfOut:0,oc:0,ent:0,spoils:0});
+    m.purchase+=+v.purchase||0; m.tfIn+=+v.tfIn||0; m.issue+=+v.issue||0;
+    m.tfOut+=+v.tfOut||0; m.oc+=+v.oc||0; m.ent+=+v.ent||0; m.spoils+=+v.spoils||0;
+  }
+  const agg={sold,cons,mv};
+  _ALL_AGG.set(key,agg); return agg;
+}
+function soldByItem(type,outlet){
+  const a=aggFor(outlet);
+  if(type==="sale" || type==="oc" || type==="ent") return a.sold[type];
+  const m={};
+  for(const t in a.sold) for(const k in a.sold[t]) m[k]=(m[k]||0)+a.sold[t][k];
+  return m;
+}
+function mvByIng(outlet){
+  return aggFor(outlet).mv;
+}
+/* per-outlet opening / count lookups — "all" adds every outlet together */
+function consByIng(sold){
+  if(!_L) rebuildLookups();
+  const m={};
+  for(const mk in sold){
+    const q=sold[mk]; if(!(q>0)) continue;
+    const lines=_L.rec[mk]; if(!lines) continue;
+    for(const l of lines) m[l.ik]=(m[l.ik]||0)+l.qty*q;
+  }
+  return m;
+}
+function openingsFor(outlet){
+  if(outlet && outlet!=="all") return S.openings[outlet]||{};
+  const m={};
+  for(const o of S.outlets){ const d=S.openings[o]||{}; for(const k in d) m[k]=(m[k]||0)+(+d[k]||0); }
+  return m;
+}
+function countsFor(outlet){
+  if(outlet && outlet!=="all") return S.counts[outlet]||{};
+  const m={};
+  for(const o of S.outlets){ const d=S.counts[o]||{}; for(const k in d){ if(d[k]!=null&&d[k]!=="") m[k]=(m[k]||0)+(+d[k]||0); } }
+  return m;
+}
+function countComplete(name,outlet){
+  if(outlet && outlet!=="all"){ const d=S.counts[outlet]||{}; return !(d[name]==null||d[name]===""); }
+  if(!S.outlets.length) return false;
+  return S.outlets.every(o=>{ const d=S.counts[o]||{}; return !(d[name]==null||d[name]===""); });
+}
+function stockRows(outlet){
+  outlet=outlet||"all";
+  const key=(outlet==="all")? "all" : li(outlet);
+  const hit=_STOCK_ROWS.get(key); if(hit) return hit;
+  const a=aggFor(outlet);
+  const consN=a.cons.sale, consOC=a.cons.oc, consE=a.cons.ent, mv=a.mv;
+  const open=openingsFor(outlet), cnt=countsFor(outlet);
+  const rows=S.ingredients.map(ing=>{
+    const k=li(ing.name), m=mv[k]||{};
+    const sales=consN[k]||0;                       // units sold via Daily Sales (POS qty × recipe) — deducted
+    const ocManual=(m.oc||0)+(consOC[k]||0);       // manual OC movement + OC-type POS consumption — deducted
+    const ent=(m.ent||0)+(consE[k]||0);
+    const opening=+open[ing.name]||0;
+    const expected=opening+(m.purchase||0)+(m.tfIn||0)+(m.issue||0)-sales-(m.tfOut||0)-ocManual-ent-(m.spoils||0);
+    const actual=countComplete(ing.name,outlet)? (+cnt[ing.name]||0) : null;
+    const variance=(actual==null)?null:actual-expected;
+    const varVal=(variance==null)?null:variance*subUnit(ing);
+    const status=(actual==null)?"nc":(variance<0?"LOSS":variance>0?"OVER":"OK");
+    return {ing,opening,purchase:m.purchase||0,tfIn:m.tfIn||0,issue:m.issue||0,sales,tfOut:m.tfOut||0,
+            ocManual,ent,spoils:m.spoils||0,expected,actual,variance,varVal,status};
+  });
+  _STOCK_ROWS.set(key,rows);
+  return rows;
+}
+function costPrice(itemName){
+  const c=_L && _L.cost[li(itemName)];
+  return c || 0;
+}
+function monthRevenue(outlet){
+  const sold=aggFor(outlet).sold.sale; let rev=0;
+  for(const it of S.items){ rev += (sold[li(it.name)]||0) * (+it.price||0); }
+  return rev;
+}
+function dayData(dateISO){
+  const sold={}, soldOC={}, soldENT={};
+  for(const s of S.sales){
+    if(s.date!==dateISO) continue;
+    const k=li(s.item), t=s.type||"sale";
+    if(t==="oc") soldOC[k]=(soldOC[k]||0)+(+s.qty||0);
+    else if(t==="ent") soldENT[k]=(soldENT[k]||0)+(+s.qty||0);
+    else sold[k]=(sold[k]||0)+(+s.qty||0);
+  }
+  const cons={};
+  const addCons=m=>{ for(const r of S.recipes){ const q=m[li(r.menu)]||0; if(q>0){ const k=li(r.ingredient); cons[k]=(cons[k]||0)+(+r.qty||0)*q; } } };
+  addCons(sold); addCons(soldOC); addCons(soldENT);
+  for(const v of S.movements){ if(v.date===dateISO && +v.oc){ const k=li(v.ingredient); cons[k]=(cons[k]||0)+(+v.oc); } }
+  return {sold,cons};
+}
+/* one date-window pass per (from,to,outlet): sold qty, revenue (normal sales only), and
+   consumption + raw cost (OC/Ent POS sales and manual OC movements included). */
+function rangeAgg(fromISO,toISO,outlet,withOutlets){
+  if(!_L) rebuildLookups();
+  const key=(fromISO||"")+"|"+(toISO||"")+"|"+((outlet&&outlet!=="all")?li(outlet):"all")+"|"+(withOutlets?1:0);
+  const hit=_RANGE_AGG.get(key); if(hit) return hit;
+  const of=(outlet && outlet!=="all")? li(outlet) : null;
+  const soldAll={}, soldRev={}, outletsByItem=(withOutlets)? {} : null;
+  let rev=0;
+  for(const s of S.sales){
+    if(of && li(s.outlet||"")!==of) continue;
+    if(s.date<fromISO || s.date>toISO) continue;
+    const k=li(s.item); if(!k) continue;
+    const q=+s.qty||0;
+    soldAll[k]=(soldAll[k]||0)+q;
+    if(!s.type){ soldRev[k]=(soldRev[k]||0)+q; rev+=q*(_L.price[k]||0); }
+    if(outletsByItem && !s.type){ const set=outletsByItem[k]||(outletsByItem[k]=new Set()); set.add(s.outlet||S.outlets[0]||""); }
+  }
+  const cons={}, cost={};
+  for(const mk in soldAll){
+    const lines=_L.rec[mk]; if(!lines) continue;
+    const q=soldAll[mk];
+    for(const l of lines){ const v=l.qty*q; cons[l.ik]=(cons[l.ik]||0)+v; cost[l.ik]=(cost[l.ik]||0)+v*l.mul*l.u; }
+  }
+  for(const v of S.movements){
+    if(of && li(v.outlet||"")!==of) continue;
+    if(v.date<fromISO || v.date>toISO) continue;
+    const oc=+v.oc; if(!oc) continue;
+    const k=li(v.ingredient); if(!k) continue;
+    cons[k]=(cons[k]||0)+oc;
+    cost[k]=(cost[k]||0)+oc*(_L.sub[k]||0);
+  }
+  const agg={soldAll,soldRev,rev,cons,cost,outletsByItem};
+  _RANGE_AGG.set(key,agg); return agg;
+}
+/* consumption quantities + raw cost with the Condiment +5% markup on ticked recipe lines.
+   Sales side (Sales table / revenue) never includes OC/Ent — consumption here always does. */
+function consAndCostByRange(fromISO,toISO,outlet){
+  const a=rangeAgg(fromISO,toISO,outlet);
+  return {cons:a.cons,cost:a.cost};
+}
+function consByRange(fromISO,toISO,outlet){
+  return rangeAgg(fromISO,toISO,outlet).cons;
+}
+function consAmount(c){
+  if(!_L) rebuildLookups();
+  let s=0;
+  for(const g of S.ingredients){ const k=li(g.name); s+=(c[k]||0)*(_L.sub[k]||0); }
+  return s;
+}
+function consCostAmount(fromISO,toISO,outlet){
+  const cost=rangeAgg(fromISO,toISO,outlet).cost; let s=0;
+  for(const k in cost) s+=cost[k];
+  return s;
+}
+function salesByRange(fromISO,toISO,outlet){
+  return rangeAgg(fromISO,toISO,outlet).soldRev;
+}
+let conMode="day";
+function renderConsumption(){
+  const d=$("conTo").value||todayISO();
+  const from=$("conFrom").value|| d.slice(0,8)+"01";
+  const of=$("conOutlet").value||"all";
+  const cc=consAndCostByRange(from,d,of);
+  const list=S.ingredients.map(g=>({g,q:cc.cons[li(g.name)]||0,c:cc.cost[li(g.name)]||0})).filter(r=>r.q>0).sort((a,b)=>a.g.name.localeCompare(b.name));
+  let salesRev = rangeAgg(from,d,of).rev; // revenue computed in the same pass as consumption
+  let h="<thead><tr><th>Ingredient</th><th>Category</th><th>Unit</th><th class=num>Consumption</th><th class=num>Raw Cost Amount / Condiment +5%</th></tr></thead><tbody>";
+  let tq=0,tv=0;
+  for(const r of list){
+    h+="<tr><td><button class='linkbtn cons-link' data-cons-ing=\""+esc(r.g.name)+"\" title=\"Show detail\">"+esc(r.g.name)+"</button></td><td>"+esc(r.g.category)+"</td><td>"+esc(r.g.unitName||"—")+"</td><td class=num>"+qtyf(r.q)+"</td><td class=num>"+money(r.c)+"</td></tr>";
+    tq+=r.q; tv+=r.c;
+  }
+  if(!list.length) h+="<tr><td colspan=5 class=empty-note>No consumption for this period.</td></tr>";
+  h+="</tbody><tfoot><tr class=totals-row><td>TOTAL</td><td></td><td></td><td class=num>"+qtyf(tq)+"</td><td class=num>"+money(tv)+"</td></tr>"
+     +"<tr class=totals-row><td colspan=5 style='text-align:right'>Total Sales: "+money(salesRev)+" บาท</td></tr></tfoot>";
+  $("tCons").innerHTML=h;
+  $("conRange").textContent = "Period: "+from+" → "+d+(of!=="all"?" · "+of:"");
+}
+function consBreakdown(ingName,fromISO,toISO,outlet){
+  outlet=outlet||"all";
+  const rows=[], m={};
+  for(const s of S.sales){
+    if(outlet!=="all" && li(s.outlet||"")!==li(outlet)) continue;
+    if(s.date<fromISO || s.date>toISO) continue;
+    const k=li(s.item);
+    const use=S.recipes.reduce((a,r)=>a+((li(r.menu)===k && li(r.ingredient)===li(ingName))?(+r.qty||0):0),0);
+    if(!use) continue;
+    const key=s.date+"|"+k+"|"+(s.type||"sale");
+    if(!m[key]) m[key]={date:s.date,item:s.item,type:s.type||"sale",qty:0,amt:0};
+    m[key].qty+=(+s.qty||0);
+    m[key].amt+=use*(+s.qty||0);
+  }
+  for(const k in m){
+    const x=m[k];
+    const src=x.type==="oc"?"OC sale":x.type==="ent"?"Ent sale":"Sale";
+    rows.push({date:x.date,src,detail:x.item,qty:qtyf(x.qty)+" × recipe",amt:x.amt});
+  }
+  for(const v of S.movements){
+    if(outlet!=="all" && li(v.outlet||"")!==li(outlet)) continue;
+    if(v.date<fromISO || v.date>toISO || li(v.ingredient)!==li(ingName)) continue;
+    if(+v.oc) rows.push({date:v.date,src:"Movement",detail:"Manual OC"+(v.note?" — "+v.note:""),qty:"—",amt:+v.oc});
+    if(+v.ent) rows.push({date:v.date,src:"Movement",detail:"Manual Ent"+(v.note?" — "+v.note:""),qty:"—",amt:+v.ent});
+  }
+  rows.sort((a,b)=>a.date<b.date?-1:1);
+  return rows;
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest && e.target.closest(".cons-link");
+  if(!b) return;
+  const name=b.dataset.consIng;
+  const to=$("conTo").value||todayISO();
+  const from=$("conFrom").value|| to.slice(0,8)+"01";
+  const rows=consBreakdown(name,from,to,$("conOutlet").value||"all");
+  const ing=findIng(name);
+  const total=rows.reduce((s,r)=>s+r.amt,0);
+  $("consDlgTitle").textContent="Consumption detail — "+name;
+  $("consDlgSub").textContent="Period "+from+" → "+to+" · Total "+qtyf(total)+" "+(ing&&ing.unitName?ing.unitName:"")+" · "+money(total*subUnit(ing||{unit:1,unitCost:0}))+" raw cost";
+  let h="<thead><tr><th>Date</th><th>Source</th><th>Detail</th><th class=num>Sale qty</th><th class=num>Consumed</th></tr></thead><tbody>";
+  if(!rows.length) h+="<tr><td colspan=5 class=empty-note>No consumption in this period.</td></tr>";
+  for(const r of rows) h+="<tr><td>"+esc(r.date)+"</td><td>"+esc(r.src)+"</td><td>"+esc(r.detail)+"</td><td class=num>"+esc(r.qty)+"</td><td class=num>"+qtyf(r.amt)+"</td></tr>";
+  h+="</tbody><tfoot><tr class=totals-row><td colspan=4>TOTAL</td><td class=num>"+qtyf(total)+"</td></tr></tfoot>";
+  $("tConsDetail").innerHTML=h;
+  openModal("consModalBg");
+});
+function unusedIngNames(){
+  const used=new Set(S.recipes.map(r=>li(r.ingredient)));
+  return S.ingredients.filter(g=>!used.has(li(g.name))).map(g=>g.name);
+}
+function warnings(){
+  const w=[];
+  const itemNames=new Set(S.items.map(i=>li(i.name)));
+  const ingNames=new Set(S.ingredients.map(i=>li(i.name)));
+  for(const s of S.sales){ if(!itemNames.has(li(s.item))) w.push("Sales: item not on menu — "+s.item+" ("+s.date+")"); }
+  for(const r of S.recipes){
+    if(!itemNames.has(li(r.menu))) w.push("Recipe: menu item not on menu — "+r.menu);
+    if(!ingNames.has(li(r.ingredient))) w.push("Recipe: ingredient not in stock list — "+r.ingredient);
+  }
+  for(const v of S.movements){ if(!ingNames.has(li(v.ingredient))) w.push("Movement: ingredient not in stock list — "+v.ingredient); }
+  for(const it of S.items){ if(!(+it.price>0)) w.push("Menu: no selling price — "+it.name); }
+  const unused=unusedIngNames();
+  if(unused.length) w.push("Inventory: "+unused.length+" ingredient"+(unused.length>1?"s":"")+" not used in any recipe — "+unused.join(", "));
+  return [...new Set(w)];
+}
+
+/* ---------- search dropdown ---------- */
+function attachSearch(inputId, ddId, getOptions, byExtra){
+  const inp=typeof inputId==="string"?$(inputId):inputId;
+  const dd=typeof ddId==="string"?$(ddId):ddId; let items=[];
+  function refresh(){
+    const t=li(inp.value);
+    items = t ? getOptions().filter(o => li(o).includes(t) || (byExtra && byExtra(o,t))) : getOptions();
+    if(items.length===0){ dd.style.display="none"; return; }
+    dd.innerHTML = items.slice(0,25).map(o=>"<div>"+esc(o)+"</div>").join("");
+    dd.style.display="block";
+  }
+  inp.addEventListener("input", refresh);
+  inp.addEventListener("focus", refresh);
+  dd.addEventListener("mousedown", e=>{
+    if(e.target.tagName==="DIV"){ inp.value=e.target.textContent; dd.style.display="none"; inp.dispatchEvent(new Event("input",{bubbles:true})); }
+  });
+  inp.addEventListener("blur", ()=>setTimeout(()=>dd.style.display="none",150));
+}
+function validPick(inputId, listGetter, errWhat){
+  const inp=typeof inputId==="string"?$(inputId):inputId;
+  const t=li(inp.value);
+  if(!t) return null;
+  const hit=listGetter().find(o=>li(o)===t);
+  if(hit===undefined){ alert("Unknown "+errWhat+": \""+inp.value+"\" — pick from the list."); return null; }
+  return hit;
+}
+
+/* ---------- categories & filters ---------- */
+let itemCatFilter="all", recCatFilter="all", ingCatFilter="all", fcCatFilter="all";
+let itemSearch="", recSearch="", ingSearch="", stockSearch="", fcSearch="";
+let dashOutletSel="all", movOutletSel="all", fcOutletSel="all";
+let dashChartsOn=false;
+function catList(type){
+  const set=new Set(S.cats[type]||[]);
+  if(type==="items") S.items.forEach(i=>{ if(i.category) set.add(i.category); });
+  else S.ingredients.forEach(g=>{ if(g.category) set.add(g.category); });
+  return [...set].sort((a,b)=>a.localeCompare(b));
+}
+function fillCatSelect(selId, type, current){
+  const cats=catList(type);
+  $(selId).innerHTML = "<option value=\"\">Uncategorized</option>" +
+    cats.map(c=>"<option value=\""+esc(c)+"\""+(li(c)===li(current||"")?" selected":"")+">"+esc(c)+"</option>").join("") +
+    "<option value=\"__new\">+ New category…</option>";
+}
+function wireCatToggle(selId,newId){
+  $(selId).addEventListener("change",()=>{
+    const isNew=$(selId).value==="__new";
+    $(newId).style.display=isNew?"block":"none";
+    if(isNew) $(newId).focus();
+  });
+}
+function catFromSelect(selId,newId,type){
+  const v=$(selId).value;
+  if(v==="__new"){
+    const nv=$(newId).value.trim();
+    if(!nv){ alert("Type the new category name, or pick one from the list."); return null; }
+    if(!catList(type).some(c=>li(c)===li(nv))) S.cats[type].push(nv);
+    return nv;
+  }
+  return v.trim()||"Uncategorized";
+}
+function renderChips(elId, cats, active, cb){
+  const el=$(elId);
+  el.innerHTML = ["<button class='chip"+(active==="all"?" on":"")+"' data-cat=all>All</button>"]
+    .concat(cats.map(c=>"<button class='chip"+(active===c?" on":"")+"' data-cat=\""+esc(c)+"\">"+esc(c)+"</button>")).join("");
+  el.querySelectorAll(".chip").forEach(ch=>{
+    ch.addEventListener("click",()=>cb(ch.dataset.cat));
+  });
+}
+/* All outlets + one button per outlet — used on Dashboard, Movement log and Forecast */
+function renderOutletChips(elId, active, cb){
+  const el=$(elId);
+  if(!el) return;
+  el.innerHTML = ["<button class='chip"+(active==="all"?" on":"")+"' data-cat=all>All outlets</button>"]
+    .concat(S.outlets.map(o=>"<button class='chip"+(active===o?" on":"")+"' data-cat=\""+esc(o)+"\">"+esc(o)+"</button>")).join("");
+  el.querySelectorAll(".chip").forEach(ch=>{
+    ch.addEventListener("click",()=>cb(ch.dataset.cat));
+  });
+}
+function fmtDT(iso){
+  if(!iso) return "";
+  return iso.slice(0,10)+" "+iso.slice(11,16);
+}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll("#tabs button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("on"));
+    document.querySelectorAll(".view").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    $("sec-"+b.dataset.tab).classList.add("on");
+    renderView(b.dataset.tab); // refresh only the tab being opened (views render on demand)
+  });
+});
+
+/* ---------- modals ---------- */
+function openModal(id){ $(id).classList.add("active"); }
+function closeModal(id){ $(id).classList.remove("active"); }
+document.querySelectorAll("[data-close]").forEach(el=>{
+  el.addEventListener("click", ()=>closeModal(el.dataset.close));
+});
+document.querySelectorAll(".modal-bg").forEach(bg=>{
+  bg.addEventListener("click", e=>{ if(e.target===bg && !(bg.id==="adminModalBg" && document.body.classList.contains("login-screen"))) closeModal(bg.id); });
+});
+
+/* ---------- header + warnings ---------- */
+function renderHeader(){
+  $("dMonth").value = S.monthTitle||"";
+  $("hItems").textContent = S.items.length;
+  $("hIngs").textContent = S.ingredients.length;
+  $("hRev").textContent = money(monthRevenue());
+  const sr=stockRows();
+  $("hExp").textContent = qtyf(sr.reduce((s,r)=>s+r.expected,0));
+  const w=warnings();
+  const wb=$("warnbox");
+  if(w.length){
+    wb.style.display="block";
+    wb.innerHTML = "<b>⚠ Check these names — they are not on the master lists:</b><ul>"+w.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>";
+  } else wb.style.display="none";
+  $("dCounts").textContent = S.sales.length+" sales · "+S.movements.length+" movements · "+S.items.length+" items · "+S.ingredients.length+" ingredients";
+}
+
+/* ---------- dashboard ---------- */
+function renderDashboard(){
+  renderOutletChips("dashOutletChips", dashOutletSel, c=>{ dashOutletSel=c; renderDashboard(); });
+  const to=$("dashTo").value||todayISO();
+  const from=$("dashFrom").value||to;
+  const of=dashOutletSel||"all";
+  if(from>to){ $("dashRange").textContent="Period: from date is after to date"; }
+  else $("dashRange").textContent="Period: "+from+" → "+to+(of!=="all"?" · "+of:"");
+  const sold=salesByRange(from>to?to:from,to>from?to:from,of);
+  const ccDash=consAndCostByRange(from>to?to:from,to>from?to:from,of);
+  const cons=ccDash.cons;
+  const rows=S.items.map(it=>{
+    const q=sold[li(it.name)]||0, cp=costPrice(it.name);
+    return {it,q,rev:q*(+it.price||0),raw:q*cp};
+  }).filter(r=>r.q>0);
+  let tRev=0,tRaw=0;
+  let h="<thead><tr><th>Menu Item</th><th>Category</th><th class=num>Qty</th><th class=num>Revenue</th><th class=num>Raw Cost / Condiment +5%</th><th class=num>Raw Cost%</th></tr></thead><tbody>";
+  for(const r of rows){
+    const pct=r.rev>0?(r.raw/r.rev*100):0;
+    h+="<tr><td>"+esc(r.it.name)+"</td><td>"+esc(r.it.category)+"</td><td class=num>"+qtyf(r.q)+"</td><td class=num>"+money(r.rev)+"</td><td class=num>"+money(r.raw)+"</td><td class=num>"+pct.toFixed(1)+"%</td></tr>";
+    tRev+=r.rev; tRaw+=r.raw;
+  }
+  h+="</tbody><tfoot><tr class=totals-row><td>TOTAL</td><td></td><td></td><td class=num>"+money(tRev)+"</td><td class=num>"+money(tRaw)+"</td><td class=num>"+(tRev>0?(tRaw/tRev*100).toFixed(1):0)+"%</td></tr></tfoot>";
+  $("tDaySales").innerHTML=h;
+
+  const consRows=S.ingredients.map(ing=>{
+    const q=cons[li(ing.name)]||0;
+    return {ing,q,amt:ccDash.cost[li(ing.name)]||0};
+  }).filter(r=>r.q>0);
+  let tAmt=0,tQ=0;
+  h="<thead><tr><th>Ingredient</th><th>Category</th><th>Unit</th><th class=num>Consumption</th><th class=num>Raw Cost Amount / Condiment +5%</th></tr></thead><tbody>";
+  for(const r of consRows){
+    h+="<tr><td>"+esc(r.ing.name)+"</td><td>"+esc(r.ing.category)+"</td><td>"+esc(r.ing.unitName||"—")+"</td><td class=num>"+qtyf(r.q)+"</td><td class=num>"+money(r.amt)+"</td></tr>";
+    tAmt+=r.amt; tQ+=r.q;
+  }
+  h+="</tbody><tfoot><tr class=totals-row><td>TOTAL</td><td></td><td></td><td class=num>"+qtyf(tQ)+"</td><td class=num>"+money(tAmt)+"</td></tr></tfoot>";
+  $("tDayCons").innerHTML=h;
+
+  const sr=stockRows(of);
+  let totExp=0,totVar=0,anyCount=false;
+  h="<thead><tr><th>Ingredient</th><th>Category</th><th class=num>Opening</th><th class=num>Purchase</th><th class=num>TF-In</th><th class=num>Issue (Store)</th><th class=num>Sales</th><th class=num>TF-Out</th><th class=num>Spoils</th><th class=num>OC/Ent</th><th class=num>Expected Closing</th></tr></thead><tbody>";
+  for(const r of sr){
+    h+="<tr><td>"+esc(r.ing.name)+"</td><td>"+esc(r.ing.category)+"</td><td class=num>"+qtyf(r.opening)+"</td><td class=num>"+qtyf(r.purchase)+"</td><td class=num>"+qtyf(r.tfIn)+"</td><td class=num>"+qtyf(r.issue)+"</td><td class=num>"+qtyf(r.sales)+"</td><td class=num>"+qtyf(r.tfOut)+"</td><td class=num>"+qtyf(r.spoils)+"</td><td class=num>"+qtyf(r.ocManual+r.ent)+"</td><td class=num>"+qtyf(r.expected)+"</td></tr>";
+    totExp+=r.expected;
+    if(r.varVal!=null){ totVar+=r.varVal; anyCount=true; }
+  }
+  h+="</tbody><tfoot><tr class=totals-row><td>TOTAL</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class=num>"+qtyf(totExp)+"</td></tr></tfoot>";
+  $("tRecon").innerHTML=h;
+
+  const today=todayISO();
+  const todayRev=(()=>{ const s=salesByRange(today,today,of); let r=0; for(const it of S.items){ r+=(s[li(it.name)]||0)*(+it.price||0); } return r; })();
+  const consTodayAmt=consCostAmount(today,today,of);
+  const consMtdAmt=consCostAmount(today.slice(0,8)+"01",today,of);
+  $("dashKpis").innerHTML =
+    "<div class=kpi><div class=v>"+money(todayRev)+"</div><div class=l>Today revenue</div></div>"+
+    "<div class=kpi><div class=v>"+money(monthRevenue(of))+"</div><div class=l>Month revenue</div></div>"+
+    "<div class=kpi><div class=v>"+money(consTodayAmt)+"</div><div class=l>Consumption today (incl. OC/Ent, +5%)</div></div>"+
+    "<div class=kpi><div class=v>"+money(consMtdAmt)+"</div><div class=l>Consumption MTD (incl. OC/Ent, +5%)</div></div>"+
+    (anyCount? "<div class='kpi"+(totVar<0?" warn":"")+"'><div class=v style='color:"+(totVar<0?"var(--low)":"var(--ok)")+"'>"+money(totVar)+"</div><div class=l>Variance value (counted)</div></div>":"");
+
+  $("dashChartCard").style.display=dashChartsOn?"":"none";
+  if(dashChartsOn) drawDashCharts(from>to?to:from,to>from?to:from,of,rows,consRows);
+}
+
+/* ---------- dashboard charts (plain canvas, no external libs) ---------- */
+const CH_C={bar:"#b4762e",bar2:"#7a674a",grid:"rgba(150,118,66,.25)",text:"#7a674a",strong:"#4b3a21"};
+function chartCtx(cv){
+  const dpr=window.devicePixelRatio||1;
+  const w=cv.clientWidth||600, h=cv.clientHeight||270;
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
+  const ctx=cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w,h};
+}
+function chFmt(v){
+  if(Math.abs(v)>=1e6) return (v/1e6).toFixed(1)+"M";
+  if(Math.abs(v)>=1e3) return (v/1e3).toFixed(1)+"k";
+  return (Math.round(v*100)/100).toString();
+}
+function chRoundRect(ctx,x,y,w,h,r){
+  r=Math.min(r,h/2,w/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,0);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function chFit(ctx,label,maxW){
+  if(ctx.measureText(label).width<=maxW) return label;
+  while(label.length>1 && ctx.measureText(label+"…").width>maxW) label=label.slice(0,-1);
+  return label+"…";
+}
+function chEmpty(ctx,w,h,msg){
+  ctx.fillStyle=CH_C.text; ctx.font="12.5px Inter, Segoe UI, Arial";
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText(msg||"No data for this period.", w/2, h/2);
+}
+function drawTopH(cv,entries){
+  const {ctx,w,h}=chartCtx(cv);
+  ctx.clearRect(0,0,w,h);
+  ctx.font="11px Inter, Segoe UI, Arial";
+  if(!entries.length || entries.every(e=>!(e.a>0)&&!(e.b>0))){ chEmpty(ctx,w,h); return; }
+  const MAX=9;
+  let list=entries;
+  if(entries.length>MAX+1){
+    const top=entries.slice(0,MAX), rest=entries.slice(MAX);
+    list=top.concat([{label:"Other ("+rest.length+")",a:rest.reduce((s,e)=>s+e.a,0),b:rest.reduce((s,e)=>s+(e.b||0),0)}]);
+  }
+  const dual=list.some(e=>(e.b||0)>0);
+  const padR=68, gap=6, padT=dual?26:8, padB=6;
+  let labW=0; for(const e of list) labW=Math.max(labW,ctx.measureText(e.label).width);
+  labW=Math.min(Math.ceil(labW),Math.round(w*0.42));
+  const areaX=labW+12, areaW=Math.max(40,w-areaX-padR);
+  const rowH=(h-padT-padB)/list.length;
+  const maxV=Math.max.apply(null,list.map(e=>Math.max(e.a,e.b||0)).concat([1e-9]));
+  if(dual){
+    const lx=w-padR+8;
+    ctx.font="10.5px Inter, Segoe UI, Arial"; ctx.textBaseline="middle"; ctx.textAlign="left";
+    ctx.fillStyle=CH_C.bar; ctx.fillRect(lx,4,10,8);
+    ctx.fillStyle=CH_C.text; ctx.fillText("Revenue",lx+14,8);
+    ctx.fillStyle=CH_C.bar2; ctx.fillRect(lx+72,4,10,8);
+    ctx.fillStyle=CH_C.text; ctx.fillText("Raw cost",lx+86,8);
+  }
+  list.forEach((e,i)=>{
+    const y0=padT+rowH*i;
+    ctx.fillStyle=CH_C.text; ctx.font="11px Inter, Segoe UI, Arial";
+    ctx.textAlign="right"; ctx.textBaseline="middle";
+    ctx.fillText(chFit(ctx,e.label,labW), areaX-6, y0+rowH/2);
+    const bar=(v,y,bh,color)=>{
+      const bw=Math.max(2,(v||0)/maxV*areaW);
+      ctx.fillStyle=color;
+      chRoundRect(ctx,areaX,y,Math.max(bw,2),bh,3); ctx.fill();
+      if(bw>14){
+        ctx.fillStyle=CH_C.strong; ctx.textAlign="left";
+        ctx.fillText(chFmt(v), areaX+bw+6, y+bh/2);
+      } else {
+        ctx.fillStyle=CH_C.strong; ctx.textAlign="left";
+        ctx.fillText(chFmt(v||0), areaX+4, y+bh/2);
+      }
+    };
+    if(dual){
+      const bh=Math.max(3,(rowH-gap)/2);
+      bar(e.a, y0+gap/4, bh, CH_C.bar);
+      bar(e.b, y0+rowH/2, bh, CH_C.bar2);
+    } else {
+      const bh=Math.min(rowH-gap,18);
+      bar(e.a, y0+(rowH-bh)/2, bh, CH_C.bar);
+    }
+  });
+}
+function drawDailyV(cv,data){
+  const {ctx,w,h}=chartCtx(cv);
+  ctx.clearRect(0,0,w,h);
+  ctx.font="10.5px Inter, Segoe UI, Arial";
+  if(!data.length){ chEmpty(ctx,w,h); return; }
+  const any=data.some(e=>e.v>0);
+  if(!any){ chEmpty(ctx,w,h,"No sales in this period."); return; }
+  const padL=46,padR=8,padT=10,padB=20;
+  const areaW=w-padL-padR, areaH=h-padT-padB;
+  const maxV=Math.max.apply(null,data.map(e=>e.v).concat([1e-9]));
+  ctx.strokeStyle=CH_C.grid; ctx.lineWidth=1;
+  for(let i=0;i<=3;i++){
+    const y=Math.round(padT+areaH-areaH*i/3)+.5;
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-padR,y); ctx.stroke();
+    ctx.fillStyle=CH_C.text; ctx.textAlign="right"; ctx.textBaseline="middle";
+    ctx.fillText(chFmt(maxV*i/3), padL-6, y);
+  }
+  const n=data.length, slot=Math.max(areaW/n,1), bw=Math.max(2,Math.min(slot*0.72,44));
+  const step=Math.max(1,Math.ceil(n/14));
+  ctx.textAlign="center";
+  data.forEach((e,i)=>{
+    const bh=e.v>0? Math.max(2,e.v/maxV*areaH):0;
+    if(bh>0){
+      ctx.fillStyle=CH_C.bar;
+      chRoundRect(ctx,padL+slot*i+(slot-bw)/2,padT+areaH-bh,bw,bh,2); ctx.fill();
+    }
+    if(i%step===0){
+      ctx.fillStyle=CH_C.text; ctx.textBaseline="top";
+      ctx.fillText(e.label, Math.min(padL+slot*i+slot/2,w-16), padT+areaH+5);
+    }
+  });
+}
+function drawDashCharts(from,to,of,salesRows,consRows){
+  const days=[]; let n=0;
+  while(n<400){ const d=addDaysISO(from,n); if(d>to) break; days.push(d); n++; }
+  const daily=days.map(d=>({label:d.slice(8,10)+"/"+d.slice(5,7), v:rangeAgg(d,d,of).rev}));
+  drawDailyV($("chDaily"),daily);
+  drawTopH($("chItems"),salesRows.slice().sort((a,b)=>b.rev-a.rev).map(r=>({label:r.it.name,a:r.rev,b:r.raw})));
+  drawTopH($("chCons"),consRows.slice().sort((a,b)=>b.amt-a.amt).map(r=>({label:r.ing.name,a:r.amt})));
+}
+let _dashRsT=null;
+window.addEventListener("resize",()=>{
+  if(!dashChartsOn) return;
+  clearTimeout(_dashRsT);
+  _dashRsT=setTimeout(()=>{ const sec=$("sec-dash"); if(sec && sec.classList.contains("on")) renderDashboard(); },150);
+});
+
+/* ---------- daily sales entry ---------- */
+function renderSalesEntry(){
+  const d=$("salesDate").value||todayISO();
+  const sold={};
+  for(const s of S.sales){ if(s.date===d && !s.type) sold[li(s.item)]=(sold[li(s.item)]||0)+(+s.qty||0); }
+  let h="<thead><tr><th>POS</th><th>Menu Item</th><th>Category</th><th class=num>Selling Price</th><th class=num style='width:110px'>Qty Sold</th><th class=num>Revenue</th><th class=num>Raw Cost / Condiment +5%</th><th class=num>Cost %</th></tr></thead><tbody>";
+  for(const it of S.items){
+    const q=sold[li(it.name)]||0;
+    h+="<tr data-entry-item=\""+esc(it.name)+"\"><td>"+esc(it.pos)+"</td><td>"+esc(it.name)+"</td><td>"+esc(it.category)+"</td><td class=num>"+money(it.price)+"</td>"+
+       "<td class=num><input type=number step=any min=0 class='saleQty' data-item=\""+esc(it.name)+"\" value=\""+(q||"")+"\" placeholder='0' style='width:80px;text-align:right'></td>"+
+       "<td class=\"num rev-cell\">0.00</td><td class=\"num cost-cell\">0.00</td><td class=\"num pct-cell\">—</td></tr>";
+  }
+  h+="</tbody><tfoot><tr class=totals-row><td colspan=4>TOTAL</td><td class=num id=entTotQty>0</td><td class=num id=entTotRev>0.00</td><td class=num id=entTotCost>0.00</td><td class=num id=entTotPct>0%</td></tr></tfoot>";
+  $("salesEntry").innerHTML=h;
+  updateSalesTotals();
+}
+function updateSalesTotals(){
+  let tq=0,tr=0,tc=0;
+  document.querySelectorAll("#salesEntry tbody tr").forEach(tr_=>{
+    const name=tr_.dataset.entryItem;
+    const it=findItem(name);
+    const q=+(tr_.querySelector(".saleQty").value)||0;
+    const rev=q*((it&&+it.price)||0);
+    const raw=q*costPrice(name);
+    tr_.querySelector(".rev-cell").textContent=money(rev);
+    tr_.querySelector(".cost-cell").textContent=money(raw);
+    tr_.querySelector(".pct-cell").textContent=rev>0?(raw/rev*100).toFixed(1)+"%":"—";
+    tq+=q; tr+=rev; tc+=raw;
+  });
+  $("entTotQty").textContent=qtyf(tq);
+  $("entTotRev").textContent=money(tr);
+  $("entTotCost").textContent=money(tc);
+  $("entTotPct").textContent=tr>0?(tc/tr*100).toFixed(1)+"%":"0%";
+}
+$("salesEntry").addEventListener("input",e=>{
+  if(e.target.classList && e.target.classList.contains("saleQty")) updateSalesTotals();
+});
+$("btnSaveDay").addEventListener("click",()=>{
+  if(role!=="admin"){ alert("Only admin can use Save day."); return; }
+  const d=$("salesDate").value;
+  if(!d){ alert("Pick a date first."); return; }
+  const out=S.sales.slice(); // keep every existing row (outlets, types, off-menu) — grid only adds
+  document.querySelectorAll("#salesEntry .saleQty").forEach(inp=>{
+    const q=+inp.value||0;
+    if(q>0) out.push({date:d,item:inp.dataset.item,qty:q,outlet:S.outlets[0]});
+  });
+  S.sales=out;
+  renderAll();
+  const f=$("dayFlash"); f.classList.add("show"); setTimeout(()=>f.classList.remove("show"),2200);
+});
+
+/* ---------- sales log + single add ---------- */
+function renderSales(){
+  const rf=$("logFrom").value, rt=$("logTo").value;
+  const from=rf||"0000-01-01", to=rt||"9999-12-31";
+  const showAll=(!rf && !rt);
+  const of=$("logOutlet").value||"all";
+  let h="<thead><tr><th>Date</th><th>Outlet</th><th>Menu Item</th><th class=num>Qty</th><th class=num>Amount</th><th></th></tr></thead><tbody>";
+  let tot=0,shown=0;
+  const label=(showAll?" (all dates)":(rf===to&&rf? " ("+rf+")" : " ("+from+" → "+to+")")+(of!=="all"?" · "+of:""));
+  S.sales.forEach((s,i)=>{
+    if(!showAll && (s.date<from || s.date>to)) return;
+    const o=s.outlet||S.outlets[0]||"";
+    if(of!=="all" && li(o)!==li(of)) return;
+    shown++;
+    const it=findItem(s.item);
+    const t=s.type||"";
+    const amt=t? 0 : (+s.qty||0)*((it&&+it.price)||0);
+    tot+=amt;
+    let mark = it? "" : " <span class='badge low'>not on menu</span>";
+    if(t==="oc") mark+=" <span class='badge over'>OC</span>";
+    if(t==="ent") mark+=" <span class='badge low'>Ent</span>";
+    h+="<tr class=clickable data-edit-sale="+i+"><td>"+s.date+"</td><td>"+esc(o)+"</td><td>"+esc(s.item)+mark+"</td><td class=num>"+qtyf(s.qty)+"</td><td class=num>"+money(amt)+"</td><td><button class=rowdel data-del-sale="+i+" title='Delete'>✕</button></td></tr>";
+  });
+  if(!shown) h+="<tr><td colspan=6 class=empty-note>No sales in this period.</td></tr>";
+  h+="</tbody><tfoot><tr class=totals-row><td colspan=3>TOTAL"+label+"</td><td></td><td></td><td class=num>"+money(tot)+"</td><td></td></tr></tfoot>";
+  $("tSales").innerHTML=h;
+}
+function resetSaleForm(){ editingSale=-1; $("sItem").value=""; $("sItem").dataset.ok=""; $("sQty").value=""; $("sAdd").textContent="Add sale"; $("sCancel").style.display="none"; $("sTypeOC").checked=false; $("sTypeEnt").checked=false; }
+$("sAdd").addEventListener("click",()=>{
+  const d=$("sDate").value, q=+$("sQty").value;
+  if(!staffDateOk(d)) return;
+  const rawItem=$("sItem").value.trim();
+  const itSel=rawItem? (findItem(rawItem)||findItemForImport(rawItem)) : null;
+  if(rawItem && !itSel){ alert("Unknown menu item or POS: \""+rawItem+"\" — pick from the list."); return; }
+  if(!d){ alert("Pick a date."); return; }
+  const name=itSel?itSel.name:null;
+  if(!name){ return; }
+  if(!(q>0)){ alert("Qty must be more than 0."); return; }
+  const oc=$("sTypeOC").checked, ent=$("sTypeEnt").checked;
+  if(oc&&ent){ alert("Pick either OC or Ent — not both."); return; }
+  const rec={date:d,item:name,qty:q,outlet:$("sOutlet").value||S.outlets[0],type:undefined};
+  if(oc) rec.type="oc"; else if(ent) rec.type="ent";
+  if(editingSale>=0){ S.sales[editingSale]=rec; logAction("Sale updated: "+name+" ×"+q+(oc?" [OC]":ent?" [Ent]":"")+" ["+rec.outlet+"]"); }
+  else { S.sales.push(rec); logAction("Sale added: "+name+" ×"+q+(oc?" [OC]":ent?" [Ent]":"")+" ["+rec.outlet+"]"); }
+  resetSaleForm(); renderAll();
+});
+document.addEventListener("click",e=>{
+  const del=e.target.getAttribute && e.target.getAttribute("data-del-sale");
+  if(del!=null){
+    e.stopPropagation();
+    const s=S.sales[+del];
+    if(role==="staff" && s && s.date!==todayISO()){ alert("Staff access: you can only delete today's sales."); return; }
+    logAction("Sale deleted: "+(s? s.item+" ×"+s.qty+" ("+s.date+")" : "row"));
+    S.sales.splice(+del,1); renderAll(); return;
+  }
+  if(e.target.closest && e.target.closest("tr[data-edit-sale]") && !e.target.classList.contains("rowdel")){
+    const row=e.target.closest("tr[data-edit-sale]");
+    if(!document.contains(row)) return;
+    const i=+row.dataset.editSale;
+    const s=S.sales[i];
+    if(role==="staff" && s.date!==todayISO()){ alert("Staff access: you can only edit today's sales."); return; }
+    editingSale=i;
+    $("sDate").value=s.date; $("sItem").value=s.item; $("sQty").value=s.qty; $("sAdd").textContent="Update sale"; $("sCancel").style.display="";
+    $("sTypeOC").checked=s.type==="oc"; $("sTypeEnt").checked=s.type==="ent";
+    const so=$("sOutlet"), opts=[...so.options].map(o=>o.value);
+    so.value = opts.includes(s.outlet||S.outlets[0]) ? (s.outlet||S.outlets[0]) : S.outlets[0];
+  }
+});
+
+/* ---------- movement ---------- */
+function renderMov(){
+  renderOutletChips("mLogOutletChips", movOutletSel, c=>{ movOutletSel=c; renderMov(); });
+  const showAll=$("mAll").checked, df=$("mDate").value||"";
+  const of=movOutletSel||"all";
+  let h="<thead><tr><th>Date</th><th>Outlet</th><th>Ingredient</th><th class=num>Purchase</th><th class=num>TF-In</th><th class=num>Issue (Store)</th><th class=num>TF-Out</th><th class=num>OC (Other)</th><th class=num>Ent</th><th class=num>Spoils</th><th>Note</th><th></th></tr></thead><tbody>";
+  const T={purchase:0,tfIn:0,issue:0,tfOut:0,oc:0,ent:0,spoils:0};
+  let shown=0;
+  S.movements.forEach((v,i)=>{
+    if(!showAll && v.date!==df) return;
+    const vo=v.outlet||S.outlets[0]||"";
+    if(of!=="all" && li(vo)!==li(of)) return;
+    shown++;
+    for(const k in T) T[k]+=+v[k]||0;
+    const mark=findIng(v.ingredient)? "" : " <span class='badge low'>unknown</span>";
+    h+="<tr class=clickable data-edit-mov="+i+"><td>"+v.date+"</td><td>"+esc(vo)+"</td><td>"+esc(v.ingredient)+mark+"</td><td class=num>"+qtyf(v.purchase)+"</td><td class=num>"+qtyf(v.tfIn)+"</td><td class=num>"+qtyf(v.issue)+"</td><td class=num>"+qtyf(v.tfOut)+"</td><td class=num>"+qtyf(v.oc)+"</td><td class=num>"+qtyf(v.ent)+"</td><td class=num>"+qtyf(v.spoils)+"</td><td>"+esc(v.note)+"</td><td><button class=rowdel data-del-mov="+i+" title='Delete'>✕</button></td></tr>";
+  });
+  if(!shown) h+="<tr><td colspan=12 class=empty-note>No movements for this date.</td></tr>";
+  h+="</tbody><tfoot><tr class=totals-row><td>TOTAL"+(showAll?" (all dates)":" ("+df+")")+(of!=="all"?" · "+of:"")+"</td><td></td><td></td>"+
+     ["purchase","tfIn","issue","tfOut","oc","ent","spoils"].map(k=>"<td class=num>"+qtyf(T[k])+"</td>").join("")+
+     "<td></td><td></td></tr></tfoot>";
+  $("tMov").innerHTML=h;
+}
+function resetMovForm(){
+  editingMov=-1;
+  $("mIng").value=""; $("mIng").dataset.ok="";
+  ["mP","mTI","mIS","mTO","mSP"].forEach(id=>$(id).value="");
+  $("mNote").value=""; $("mAdd").textContent="Add movement"; $("mCancel").style.display="none";
+}
+$("sCancel").addEventListener("click",()=>resetSaleForm());
+$("mCancel").addEventListener("click",()=>resetMovForm());
+$("mAdd").addEventListener("click",()=>{
+  const d=$("mDate").value;
+  const name=validPick("mIng", ()=>S.ingredients.map(g=>g.name), "ingredient");
+  if(!d){ alert("Pick a date."); return; }
+  if(!name){ return; }
+  const prev=editingMov>=0?S.movements[editingMov]:null;
+  if(!staffDateOk(d)) return;
+  const rec={date:d,outlet:(S.outlets.find(o=>li(o)===li($("mOutlet").value))||S.outlets[0]),ingredient:name,purchase:+$("mP").value||0,tfIn:+$("mTI").value||0,issue:+$("mIS").value||0,
+             tfOut:+$("mTO").value||0,oc:prev?(prev.oc||0):0,ent:prev?(prev.ent||0):0,spoils:+$("mSP").value||0,note:$("mNote").value.trim()};
+  if(rec.purchase+rec.tfIn+rec.issue+rec.tfOut+rec.oc+rec.ent+rec.spoils===0){ alert("Type at least one quantity."); return; }
+  if(editingMov>=0) { S.movements[editingMov]=rec; logAction("Movement updated: "+name+" ("+d+")"); } else { S.movements.push(rec); logAction("Movement added: "+name+" ("+d+")"); }
+  resetMovForm(); renderAll();
+});
+document.addEventListener("click",e=>{
+  const del=e.target.getAttribute && e.target.getAttribute("data-del-mov");
+  if(del!=null){
+    e.stopPropagation();
+    const v=S.movements[+del];
+    if(role==="staff" && v && v.date!==todayISO()){ alert("Staff access: you can only delete today's movements."); return; }
+    logAction("Movement deleted: "+(v? v.ingredient+" ("+v.date+")" : "row"));
+    S.movements.splice(+del,1); renderAll(); return;
+  }
+  if(e.target.closest && e.target.closest("tr[data-edit-mov]") && !e.target.classList.contains("rowdel")){
+    const row=e.target.closest("tr[data-edit-mov]");
+    if(!document.contains(row)) return;
+    const i=+row.dataset.editMov;
+    const v=S.movements[i];
+    if(role==="staff" && v.date!==todayISO()){ alert("Staff access: you can only edit today's movements."); return; }
+    editingMov=i;
+    $("mDate").value=v.date;
+    $("mOutlet").value=(S.outlets.find(o=>li(o)===li(v.outlet||""))||S.outlets[0]||"");
+    $("mIng").value=v.ingredient;
+    $("mP").value=v.purchase||""; $("mTI").value=v.tfIn||""; $("mIS").value=v.issue||"";
+    $("mTO").value=v.tfOut||""; $("mSP").value=v.spoils||"";
+    $("mNote").value=v.note||""; $("mAdd").textContent="Update movement"; $("mCancel").style.display="";
+  }
+});
+
+/* ---------- stock card ---------- */
+function renderStock(){
+  const of=$("stkOutlet").value||"all";
+  const per=of!=="all";
+  const sq=li(stockSearch);
+  const rows=stockRows(of).filter(r=>!sq||li(r.ing.name).includes(sq));
+  let h="<thead><tr><th>Ingredient</th><th class=num>Opening</th><th class=num>Purchase</th><th class=num>TF-In</th><th class=num>Issue (Store)</th><th class=num>Sales</th><th class=num>TF-Out</th><th class=num>OC (manual)</th><th class=num>Ent</th><th class=num>Spoils</th><th class=num>Expected Closing</th><th>Actual Count</th><th class=num>Variance</th><th class=num>Variance Value</th><th>Status</th></tr></thead><tbody>";
+  for(const r of rows){
+    const badgeClass=r.status==="nc"?"nc":r.status==="LOSS"?"low":r.status==="OVER"?"over":"ok";
+    const pillFull="<span class='badge "+badgeClass+"'>"+(r.status==="nc"?(per?"not counted":"count each outlet"):r.status)+"</span>";
+    const cntCell = per
+      ? "<td><input type=number step=any class='countIn' data-ing=\""+esc(r.ing.name)+"\" style='width:90px;text-align:right' value='"+(r.actual==null?"":r.actual)+"'></td>"
+      : "<td class=num style='color:var(--muted)' title='Counts are kept per outlet — pick an outlet above to type the count'>"+(r.actual==null?"—":qtyf(r.actual))+"</td>";
+    h+="<tr><td>"+esc(r.ing.name)+"</td><td class=num>"+qtyf(r.opening)+"</td><td class=num>"+qtyf(r.purchase)+"</td><td class=num>"+qtyf(r.tfIn)+"</td><td class=num>"+qtyf(r.issue)+"</td><td class=num>"+qtyf(r.sales)+"</td><td class=num>"+qtyf(r.tfOut)+"</td><td class=num>"+qtyf(r.ocManual)+"</td><td class=num>"+qtyf(r.ent)+"</td><td class=num>"+qtyf(r.spoils)+"</td><td class=num>"+qtyf(r.expected)+"</td>"+
+       cntCell+
+       "<td class=num>"+(r.variance==null?"—":qtyf(r.variance))+"</td><td class=num>"+(r.varVal==null?"—":money(r.varVal))+"</td><td>"+pillFull+"</td></tr>";
+  }
+  h+="</tbody>";
+  $("tStock").innerHTML=h;
+}
+document.addEventListener("change",e=>{
+  if(e.target.classList && e.target.classList.contains("countIn")){
+    const name=e.target.dataset.ing;
+    const v=e.target.value;
+    const of=$("stkOutlet").value||"all";
+    if(of==="all") return; // counts are per outlet
+    if(!S.counts[of]) S.counts[of]={};
+    if(v==="") delete S.counts[of][name]; else S.counts[of][name]=+v;
+    invalidateCaches(); // counts feed variance/status on the Stock Card and Dashboard
+    renderStock();      // rebuild only this table instead of the whole app
+    saveSoon();
+    // Enter-to-next: the table was rebuilt, put the cursor back on the next field
+    if(window.__pendingCountFocus!=null){
+      const nxt=[...document.querySelectorAll("#tStock .countIn")].find(x=>x.dataset.ing===window.__pendingCountFocus);
+      if(nxt){ nxt.focus(); if(nxt.select) nxt.select(); }
+      window.__pendingCountFocus=null;
+    }
+  }
+});
+
+/* ---------- menu item sale ---------- */
+let tsMode="day";
+function renderTopSales(){
+  const to=$("tsTo").value||todayISO();
+  const from=(tsMode==="mtd")? to.slice(0,8)+"01" : ($("tsFrom").value||to);
+  const of=$("tsOutlet").value||"all";
+  $("tsRange").textContent="Period: "+from+" → "+to+($("tsOutlet").value&&of!=="all"?" · "+of:"");
+  const ra=rangeAgg(from,to,of,true);    // one pass: quantities + revenue + outlets
+  const sold=ra.soldRev;
+  const outletsByItem=ra.outletsByItem||{};
+  const rows=S.items.map(it=>({it,q:sold[li(it.name)]||0}))
+    .filter(r=>r.q>0)
+    .map(r=>({...r,rev:r.q*(+r.it.price||0),raw:r.q*costPrice(r.it.name)}))
+    .sort((a,b)=>b.rev-a.rev);
+  const totRev=rows.reduce((s,r)=>s+r.rev,0), totQ=rows.reduce((s,r)=>s+r.q,0), totRaw=rows.reduce((s,r)=>s+r.raw,0);
+  let h="<thead><tr><th>#</th><th>POS</th><th>Menu Item</th><th>Outlet</th><th>Category</th><th class=num>Qty Sold</th><th class=num>Revenue</th><th class=num>Raw Cost</th><th class=num>Revenue %</th></tr></thead><tbody>";
+  if(!rows.length) h+="<tr><td colspan=9 class=empty-note>No sales for this period.</td></tr>";
+  rows.forEach((r,i)=>{
+    h+="<tr><td>"+(i+1)+"</td><td>"+esc(r.it.pos)+"</td><td>"+esc(r.it.name)+"</td><td>"+esc([...(outletsByItem[li(r.it.name)]||["—"])].join(", "))+"</td><td>"+esc(r.it.category)+"</td><td class=num>"+qtyf(r.q)+"</td><td class=num>"+money(r.rev)+"</td><td class=num>"+money(r.raw)+"</td><td class=num>"+(totRev>0?(r.rev/totRev*100).toFixed(1)+"%":"0%")+"</td></tr>";
+  });
+  h+="</tbody><tfoot><tr class=totals-row><td colspan=5>TOTAL</td><td class=num>"+qtyf(totQ)+"</td><td class=num>"+money(totRev)+"</td><td class=num>"+money(totRaw)+"</td><td></td></tr></tfoot>";
+  $("tTop").innerHTML=h;
+}
+/* avg/day is computed automatically from the last 5 days of sales — no manual overrides */
+function renderForecast(){
+  renderOutletChips("fcOutletChips", fcOutletSel, c=>{ fcOutletSel=c; renderForecast(); });
+  renderChips("fcChips", catList("ings"), fcCatFilter, c=>{ fcCatFilter=c; renderForecast(); });
+  const f=li(fcCatFilter);
+  const of=fcOutletSel||"all";
+  const days=5;
+  const avg0={};
+  const c=consByRange(addDaysISO(todayISO(),-(days-1)),todayISO(),of);
+  for(const k in c) avg0[k]=c[k]/days;
+  const rows=stockRows(of).filter(r=>f==="all"||li(r.ing.category)===f)
+    .filter(r=>!li(fcSearch)||li(r.ing.name).includes(li(fcSearch)))
+    .map(r=>{
+    const avgDay=avg0[li(r.ing.name)]||0;
+    const need4=avgDay*4;
+    const left=r.expected-need4;
+    const daysLeft=avgDay>0? r.expected/avgDay : null;
+    let st;
+    if(avgDay<=0) st="no usage";
+    else if(daysLeft<1) st="OUT";
+    else if(daysLeft<=2) st="LOW";
+    else if(daysLeft<=4) st="≤ 4 days";
+    else st="OK";
+    return {r,avgDay,need4,left,daysLeft,st};
+  }).sort((a,b)=>{
+    const da=(a.avgDay>0)?a.daysLeft:9999, db=(b.avgDay>0)?b.daysLeft:9999;
+    return da-db;
+  });
+  let h="<thead><tr><th>Ingredient</th><th>Category</th><th>Unit</th><th class=num>Stock now</th><th class=num>Avg / day (5d)</th><th class=num>Need 4 days</th><th class=num>Left after 4 days</th><th class=num>Suggest order</th><th class=num>Days left</th><th>Status</th></tr></thead><tbody>";
+  for(const r of rows){
+    const badge = r.st==="OUT"?"low":r.st==="LOW"?"low":(r.st==="≤ 4 days")?"over":(r.st==="OK")?"ok":"nc";
+    const daysTxt = r.avgDay>0 ? (r.daysLeft<0 ? "0" : (r.daysLeft<100? qtyf(r.daysLeft) : "100+")) : "—";
+    const order=Math.max(0,r.need4-r.r.expected);
+    h+="<tr><td>"+esc(r.r.ing.name)+"</td><td>"+esc(r.r.ing.category)+"</td><td>"+esc(r.r.ing.unitName||"—")+"</td>"+
+       "<td class=num>"+qtyf(r.r.expected)+"</td>"+
+       "<td class=num title='Average daily use over the last 5 days for the selected outlet - computed automatically, not editable'>"+qtyf(r.avgDay)+"</td>"+
+       "<td class=num>"+qtyf(r.need4)+"</td>"+
+       "<td class=num"+(r.left<0?" style='color:var(--low);font-weight:700'":"")+">"+qtyf(r.left)+"</td>"+
+       "<td class=num>"+(order>0?qtyf(order):"—")+"</td>"+
+       "<td class=num>"+daysTxt+"</td><td><span class='badge "+badge+"'>"+r.st+"</span></td></tr>";
+  }
+  h+="</tbody>";
+  $("tForecast").innerHTML=h;
+}
+function renderItems(){
+  renderChips("itemChips", catList("items"), itemCatFilter, c=>{ itemCatFilter=c; renderItems(); });
+  const f=li(itemCatFilter);
+  let h="<thead><tr><th>POS</th><th>Item Name</th><th>Category</th><th class=num>Selling Price</th><th class=num>Net Price (ex VAT)</th><th class=num>Cost Price / Condiment +5%</th><th class=num>Cost %</th><th></th></tr></thead><tbody>";
+  S.items.forEach((it,i)=>{
+    if(f!=="all" && li(it.category)!==f) return;
+    if(itemSearch && !(li(it.name).includes(li(itemSearch)) || li(it.pos).includes(li(itemSearch)))) return;
+    const cp=costPrice(it.name);
+    const sellP=(+it.price||0)/(it.vatIncluded?1.07:1);
+    const pct=(sellP>0)?(cp/sellP*100):null;
+    h+="<tr><td><input type=text data-it=pos data-i="+i+" value=\""+esc(it.pos)+"\" style='width:60px'></td>"+
+       "<td style='font-weight:600'>"+esc(it.name)+"</td>"+
+       "<td><input type=text data-it=category data-i="+i+" value=\""+esc(it.category)+"\" style='width:110px'></td>"+
+       "<td class=num><input type=number step=any data-it=price data-i="+i+" value=\""+(+it.price||0)+"\" style='width:95px;text-align:right'></td>"+
+       "<td class=num>"+money(sellP)+"</td>"+
+       "<td class=num>"+money(cp)+"</td><td class=num>"+(pct==null?"—":pct.toFixed(1)+"%")+"</td>"+
+       "<td style='white-space:nowrap'><button class=rowedit data-edit-item="+i+" title='Edit menu item'>✎</button> <button class=rowdel data-del-item="+i+" title='Delete'>✕</button></td></tr>";
+  });
+  h+="</tbody>";
+  $("tItems").innerHTML=h;
+}
+$("itemAddBtn").addEventListener("click",()=>{
+  editingItem=-1;
+  $("itemModalTitle").textContent="Add menu item";
+  $("miPos").value=""; $("miName").value=""; $("miPrice").value="";
+  fillCatSelect("miCategory","items","");
+  $("miCategoryNew").value=""; $("miCategoryNew").style.display="none";
+  openModal("itemModalBg");
+});
+$("miSave").addEventListener("click",()=>{
+  const name=$("miName").value.trim();
+  if(!name){ alert("Give the item a name."); return; }
+  const dup=findItem(name);
+  if(dup && dup!==S.items[editingItem]){ alert("An item with this name already exists."); return; }
+  const cat=catFromSelect("miCategory","miCategoryNew","items");
+  if(cat===null) return;
+  const pos=$("miPos").value.trim();
+  const price=+$("miPrice").value||0;
+  if(editingItem>=0){
+    logAction("Menu item updated: "+name);
+    const it=S.items[editingItem];
+    const old=it.name;
+    it.pos=pos; it.name=name; it.category=cat; it.price=price;
+    if(li(name)!==li(old)){
+      S.recipes.forEach(r=>{ if(li(r.menu)===li(old)) r.menu=name; });
+      S.sales.forEach(s=>{ if(li(s.item)===li(old)) s.item=name; });
+    }
+    editingItem=-1;
+  } else {
+    S.items.push({pos,name,category:cat,price});
+    logAction("Menu item added: "+name);
+  }
+  closeModal("itemModalBg"); renderAll();
+});
+document.addEventListener("click",e=>{
+  const t=e.target;
+  if(t.getAttribute && t.getAttribute("data-edit-item")!=null){
+    const i=+t.getAttribute("data-edit-item");
+    const it=S.items[i];
+    if(!it) return;
+    editingItem=i;
+    $("itemModalTitle").textContent="Edit menu item — "+it.name;
+    $("miPos").value=it.pos||"";
+    $("miName").value=it.name;
+    fillCatSelect("miCategory","items",it.category||"");
+    $("miCategoryNew").value=""; $("miCategoryNew").style.display="none";
+    $("miPrice").value=(it.price!=null?it.price:"");
+    openModal("itemModalBg");
+  }
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset && t.dataset.it){
+    const i=+(t.dataset.i!=null?t.dataset.i:-1);
+    if(i<0 || !S.items[i]) return;
+    const it=S.items[i];
+    const field=t.dataset.it;
+    if(field==="price") it.price=+t.value||0;
+    else if(field==="name"){
+      const old=it.name, nw=t.value.trim();
+      if(nw && nw!==old){
+        it.name=nw;
+        S.recipes.forEach(r=>{ if(li(r.menu)===li(old)) r.menu=nw; });
+        S.sales.forEach(s=>{ if(li(s.item)===li(old)) s.item=nw; });
+      }
+    }
+    else it[field]=t.value.trim();
+    renderAll();
+  }
+});
+document.addEventListener("click",e=>{
+  const t=e.target;
+  if(t.getAttribute && t.getAttribute("data-del-item")!=null){
+    const it=S.items[+t.getAttribute("data-del-item")];
+    if(confirm("Delete this menu item?")){
+      logAction("Menu item deleted: "+(it?it.name:"?"));
+      S.items.splice(+t.getAttribute("data-del-item"),1); renderAll();
+    }
+  }
+});
+
+/* ---------- category manager ---------- */
+let catType="items";
+function openCatModal(type){
+  catType=type;
+  $("catModalTitle").textContent = type==="items" ? "Menu item categories" : "Ingredient categories";
+  renderCatRows();
+  openModal("catModalBg");
+}
+function renderCatRows(){
+  const list=catList(catType);
+  const members = catType==="items" ? S.items : S.ingredients;
+  $("catRows").innerHTML = list.map(c=>{
+    const n=members.filter(m=>li(m.category)===li(c)).length;
+    return "<div class=cat-row data-cat=\""+esc(c)+"\"><input type=text value=\""+esc(c)+"\"><span class=cat-count>"+n+" in use</span><button class='rm-btn' style='height:34px;width:38px' title='Delete category'>&times;</button></div>";
+  }).join("") || "<p class=hint>No categories yet — add one below.</p>";
+}
+$("itemCatBtn").addEventListener("click",()=>openCatModal("items"));
+$("ingCatBtn").addEventListener("click",()=>openCatModal("ings"));
+$("catAddBtn").addEventListener("click",()=>{
+  const v=$("catNewName").value.trim();
+  if(!v) return;
+  if(catList(catType).some(c=>li(c)===li(v))){ alert("This category already exists."); return; }
+  S.cats[catType].push(v);
+  $("catNewName").value="";
+  renderCatRows(); renderAll();
+});
+$("catRows").addEventListener("change",e=>{
+  const row=e.target.closest && e.target.closest(".cat-row"); if(!row) return;
+  const old=row.dataset.cat, nw=e.target.value.trim();
+  if(!nw || li(nw)===li(old)){ renderCatRows(); return; }
+  if(catList(catType).some(c=>li(c)===li(nw))) alert("\""+nw+"\" already exists — the two lists will merge.");
+  const members = catType==="items"?S.items:S.ingredients;
+  members.forEach(m=>{ if(li(m.category)===li(old)) m.category=nw; });
+  const arr=S.cats[catType];
+  const oi=arr.findIndex(c=>li(c)===li(old));
+  if(oi>=0){
+    if(arr.some((c,idx)=>idx!==oi&&li(c)===li(nw))) arr.splice(oi,1); else arr[oi]=nw;
+  }
+  if(catType==="items"){
+    if(li(itemCatFilter)===li(old)) itemCatFilter=nw;
+    if(li(recCatFilter)===li(old)) recCatFilter=nw;
+  } else if(li(ingCatFilter)===li(old)) ingCatFilter=nw;
+  renderCatRows(); renderAll();
+});
+$("catRows").addEventListener("click",e=>{
+  if(!e.target.classList || !e.target.classList.contains("rm-btn")) return;
+  const row=e.target.closest(".cat-row");
+  const c=row.dataset.cat;
+  const members = catType==="items"?S.items:S.ingredients;
+  const n=members.filter(m=>li(m.category)===li(c)).length;
+  if(n>0){ alert(n+" "+(catType==="items"?"menu items":"ingredients")+" still use \""+c+"\" — move them to another category first."); return; }
+  S.cats[catType]=S.cats[catType].filter(x=>li(x)!==li(c));
+  if(catType==="items"){
+    if(li(itemCatFilter)===li(c)) itemCatFilter="all";
+    if(li(recCatFilter)===li(c)) recCatFilter="all";
+  } else if(li(ingCatFilter)===li(c)) ingCatFilter="all";
+  renderCatRows(); renderAll();
+});
+
+/* ---------- recipes (card grid + modal builder) ---------- */
+function renderRecipes(){
+  renderChips("recChips", catList("items"), recCatFilter, c=>{ recCatFilter=c; renderRecipes(); });
+  const f=li(recCatFilter);
+  const q=li(recSearch);
+  const grid=$("recipeGrid");
+  const byMenu={}, order=[];
+  for(const it of S.items){ const k=li(it.name); if(!byMenu[k]){ byMenu[k]={name:it.name,item:it,lines:[]}; order.push(k); } }
+  for(const r of S.recipes){
+    const k=li(r.menu);
+    if(!byMenu[k]){ byMenu[k]={name:r.menu,item:null,lines:[]}; order.push(k); }
+    const ing=findIng(r.ingredient);
+    byMenu[k].lines.push({r,ing,lc:(+r.qty||0)*(ing?subUnit(ing):0)*(r.condiment?1.05:1)});
+  }
+  grid.innerHTML = order
+    .filter(k=>{
+      const g=byMenu[k];
+      if(q && !li(g.name).includes(q)) return false;
+      if(f==="all") return true;
+      return g.item && li(g.item.category)===f;
+    })
+    .map(k=>{
+    const g=byMenu[k];
+    const item=g.item;
+    const cost=g.lines.reduce((s,l)=>s+l.lc,0);
+    const price=item?(+item.price||0)/(item.vatIncluded?1.07:1):0;
+    const pct=price>0?(cost/price*100):null;
+    const linesHtml=g.lines.length
+      ? g.lines.map(l=>"<li><span>"+esc(l.r.ingredient)+(l.ing?"":" <span class='badge low'>unknown</span>")+"</span><span>"+qtyf(l.r.qty)+((l.ing&&l.ing.unitName)?" "+esc(l.ing.unitName):"")+" · "+money(l.lc)+(l.r.condiment?" <i class=cplus>+5%</i>":"")+"</span></li>").join("")
+      : "<li class=none>No recipe yet — cost 0.00</li>";
+    const anyMissing=g.lines.some(l=>!l.ing);
+    const cat=(item? esc(item.category) : "<span class='badge low'>not on menu</span>")+(item&&item.pos? " · POS "+esc(item.pos):"")+(anyMissing?" <span class='badge low'>⚠ missing ingredient</span>":"");
+    return "<div class='recipe-card' data-menu=\""+esc(g.name)+"\">"+
+      "<div class=rc-top><div><h3>"+esc(g.name)+"</h3><div class=cat>"+cat+"</div></div></div>"+
+      "<ul>"+linesHtml+"</ul>"+
+      "<div class=rc-money><span>Cost / Price (ex VAT)</span><b>"+money(cost)+" / "+money(price)+"</b></div>"+
+      "<div class=rc-money><span>Cost % / Margin</span><b>"+(pct==null?"—":pct.toFixed(1)+"%")+" / "+money(price-cost)+"</b></div>"+
+      "<div class=rc-actions><button class='btn ghost small' data-rec-edit=\""+esc(g.name)+"\">"+(g.lines.length?"Edit recipe":"+ Add recipe")+"</button>"+
+      (g.lines.length?"<button class='btn danger small' data-rec-del=\""+esc(g.name)+"\">Delete</button>":"")+"</div></div>";
+    }).join("");
+}
+function logRecipe(action, menu, lines){
+  S.recipeLog.unshift({t:new Date().toISOString().slice(0,16),action,menu,lines:lines||0});
+  if(S.recipeLog.length>300) S.recipeLog.length=300;
+}
+function renderRecipeLog(){
+  let h="<thead><tr><th>Date &amp; Time</th><th>Action</th><th>Menu Item</th><th class=num>Lines</th></tr></thead><tbody>";
+  if(!S.recipeLog.length) h+="<tr><td colspan=4 class=empty-note>No recipe changes yet — save or delete a recipe and it will appear here.</td></tr>";
+  S.recipeLog.slice(0,100).forEach(l=>{
+    const b = l.action==="created"?"ok":l.action==="deleted"?"low":"over";
+    h+="<tr><td>"+esc(fmtDT(l.t))+"</td><td><span class='badge "+b+"'>"+esc(l.action)+"</span></td><td>"+esc(l.menu)+"</td><td class=num>"+qtyf(l.lines)+"</td></tr>";
+  });
+  if(S.recipeLog.length>100) h+="<tr><td colspan=4 class=empty-note>Showing the latest 100 of "+S.recipeLog.length+" changes.</td></tr>";
+  h+="</tbody>";
+  $("tRecLog").innerHTML=h;
+}
+let draftLines=[];
+let recCatTouched=false;
+function recPreview(){
+  let cost=0;
+  for(const l of draftLines){
+    const ing=findIng(l.ing);
+    if(ing) cost += (+l.qty||0)*subUnit(ing)*(l.cond?1.05:1);
+  }
+  const item=findItem($("recItem").value);
+  const gross=item?(+item.price||0):0;
+  const vat=$("recVat").checked;
+  const sell=vat? gross/1.07 : gross;
+  $("prevCost").textContent=money(cost);
+  $("prevPriceLbl").textContent=vat?"Selling price (ex VAT)":"Selling price (excl VAT)";
+  $("prevPrice").textContent=money(sell);
+  $("prevPct").textContent=sell>0?(cost/sell*100).toFixed(1)+"%":"0%";
+  $("prevMargin").textContent=money(sell-cost);
+  $("recItemInfo").textContent = item
+    ? ("POS "+(item.pos||"—")+" · Selling price "+money(gross)+(vat?" incl. VAT — Cost % uses "+money(sell)+" ex VAT":" excl. VAT"))
+    : "Pick a menu item from the list to see its POS number and price.";
+}
+function updateLineUnits(){
+  document.querySelectorAll("#recLines .ing-row").forEach(row=>{
+    const l=draftLines[+row.dataset.idx];
+    const ing=l?findIng(l.ing):null;
+    const el=row.querySelector(".line-unit");
+    if(!l || !li(l.ing)){ el.textContent=""; el.style.color="var(--copper-bright)"; }
+    else if(ing){ el.textContent=ing.unitName||"unit"; el.style.color="var(--copper-bright)"; }
+    else { el.textContent="⚠ not in Inventory — pick from the list"; el.style.color="var(--low)"; }
+  });
+}
+function renderRecLines(){
+  const wrap=$("recLines");
+  wrap.innerHTML = draftLines.map((l,idx)=>
+    "<div class=ing-row data-idx="+idx+">"+
+    "<div><label>Ingredient</label><span class=searchwrap style=display:block><input type=text class='line-ing' placeholder='type to search…' autocomplete='off' value=\""+esc(l.ing)+"\"><div class=dd></div></span></div>"+
+    "<div><label>Qty</label><input type=number step=any min=0 class='line-qty' placeholder='0' value=\""+esc(l.qty)+"\"><div class=line-unit></div></div>"+
+    "<div class=ck style='padding-top:18px'><input type=checkbox class=line-cond"+(l.cond?" checked":"")+"> +5%</div>"+
+    "<button type=button class='rm-btn' style='margin-top:18px'>&times;</button></div>"
+  ).join("");
+  wrap.querySelectorAll(".ing-row").forEach(row=>{
+    attachSearch(row.querySelector(".line-ing"), row.querySelector(".dd"), ()=>S.ingredients.map(g=>g.name));
+  });
+  updateLineUnits();
+  recPreview();
+}
+function openRecModal(menuName){
+  $("recItem").value=menuName||"";
+  $("recItem").dataset.ok="";
+  $("recModalTitle").textContent = menuName? "Edit recipe — "+menuName : "New recipe";
+  const it0=findItem(menuName||"");
+  $("recCat").value = it0 ? (it0.category||"") : "";
+  const incl0 = it0 ? !!it0.vatIncluded : false;
+  $("recVat").checked = incl0;
+  $("recNoVat").checked = !incl0;
+  recCatTouched=false;
+  draftLines = menuName
+    ? S.recipes.filter(r=>li(r.menu)===li(menuName)).map(r=>({ing:r.ingredient,qty:r.qty,cond:!!r.condiment}))
+    : [];
+  if(!draftLines.length) draftLines.push({ing:"",qty:"",cond:true});
+  renderRecLines();
+  openModal("recModalBg");
+}
+$("recAddBtn").addEventListener("click",()=>openRecModal(""));
+document.addEventListener("click",e=>{
+  const t=e.target;
+  if(t.getAttribute && t.getAttribute("data-rec-edit")!=null) openRecModal(t.getAttribute("data-rec-edit"));
+  if(t.getAttribute && t.getAttribute("data-rec-del")!=null){
+    const m=t.getAttribute("data-rec-del");
+    if(confirm("Delete ALL recipe lines for \""+m+"\"?")){
+      const n=S.recipes.filter(r=>li(r.menu)===li(m)).length;
+      S.recipes=S.recipes.filter(r=>li(r.menu)!==li(m));
+      logRecipe("deleted", m, n);
+      logAction("Recipe deleted: "+m+" ("+n+" lines)");
+      renderAll();
+    }
+  }
+});
+$("recAddLine").addEventListener("click",()=>{
+  draftLines.push({ing:"",qty:"",cond:true});
+  renderRecLines();
+});
+$("recItem").addEventListener("input",()=>{
+  const it=findItem($("recItem").value);
+  if(it && !recCatTouched) $("recCat").value=it.category||"";
+  recPreview();
+});
+/* the two VAT boxes are a pair — exactly one is always ticked, and the preview recomputes immediately */
+$("recVat").addEventListener("change",()=>{
+  $("recNoVat").checked=!$("recVat").checked;
+  recPreview();
+});
+$("recNoVat").addEventListener("change",()=>{
+  $("recVat").checked=!$("recNoVat").checked;
+  recPreview();
+});
+$("recCat").addEventListener("input",()=>{ recCatTouched=true; });
+$("recLines").addEventListener("input",e=>{
+  const row=e.target.closest && e.target.closest(".ing-row"); if(!row) return;
+  const idx=+row.dataset.idx;
+  if(e.target.classList.contains("line-qty")) draftLines[idx].qty=e.target.value;
+  if(e.target.classList.contains("line-ing")){ draftLines[idx].ing=e.target.value; updateLineUnits(); }
+  recPreview();
+});
+$("recLines").addEventListener("change",e=>{
+  const row=e.target.closest && e.target.closest(".ing-row"); if(!row) return;
+  if(e.target.classList.contains("line-cond")){ draftLines[+row.dataset.idx].cond=e.target.checked; recPreview(); }
+});
+$("recLines").addEventListener("click",e=>{
+  if(e.target.classList && e.target.classList.contains("rm-btn")){
+    draftLines.splice(+e.target.closest(".ing-row").dataset.idx,1);
+    renderRecLines();
+  }
+});
+$("recSave").addEventListener("click",()=>{
+  const m=validPick("recItem", ()=>S.items.map(i=>i.name), "menu item");
+  if(!m) return;
+  const lines=[];
+  for(let n=0;n<draftLines.length;n++){
+    const l=draftLines[n];
+    if(!li(l.ing) && (l.qty===""||l.qty==null)) continue; // empty line — ignored
+    const ing=findIng(l.ing);
+    if(!ing){ alert("Line "+(n+1)+": unknown ingredient \""+l.ing+"\" — pick from the list."); return; }
+    if(!(+l.qty>0)){ alert("Line "+(n+1)+": Qty must be more than 0."); return; }
+    lines.push({menu:m,ingredient:ing.name,qty:+l.qty,condiment:!!l.cond});
+  }
+  if(!lines.length){ alert("Add at least one ingredient line."); return; }
+  const cat=$("recCat").value.trim();
+  if(cat){
+    const it=findItem(m);
+    if(it){ if(it.category!==cat) it.category=cat; it.vatIncluded=$("recVat").checked; }
+  }
+  const existed=S.recipes.some(r=>li(r.menu)===li(m));
+  S.recipes=S.recipes.filter(r=>li(r.menu)!==li(m));
+  S.recipes.push(...lines);
+  logRecipe(existed?"updated":"created", m, lines.length);
+  logAction("Recipe saved: "+m+" ("+lines.length+" lines)"+($("recVat").checked?" [VAT]":""));
+  closeModal("recModalBg"); renderAll();
+});
+
+/* ---------- inventory ---------- */
+function renderIngs(){
+  renderChips("ingChips", catList("ings"), ingCatFilter, c=>{ ingCatFilter=c; renderIngs(); });
+  const f=li(ingCatFilter);
+  const io=(S.outlets.find(o=>li(o)===li($("ingOutlet").value))||S.outlets[0]||"");
+  const ioOpen=(S.openings[io]||{});
+  let h="<thead><tr><th>Ingredient</th><th>Category</th><th>Unit</th><th class=num>Size</th><th class=num>Unit Cost</th><th class=num>Cost per Unit</th><th class=num>Opening Qty"+(io?" — "+esc(io):"")+"</th><th></th></tr></thead><tbody>";
+  const usedIngs=new Set(S.recipes.map(r=>li(r.ingredient)));
+  S.ingredients.forEach((g,i)=>{
+    if(f!=="all" && li(g.category)!==f) return;
+    if(ingSearch && !li(g.name).includes(li(ingSearch))) return;
+    h+="<tr><td><input type=text data-g=name data-i="+i+" value=\""+esc(g.name)+"\" style='width:140px'>"+(usedIngs.has(li(g.name))?"":" <span class='badge over' title='This ingredient is not used in any recipe'>no recipe</span>")+"</td>"+
+       "<td><input type=text data-g=category data-i="+i+" value=\""+esc(g.category)+"\" style='width:105px'></td>"+
+       "<td><input type=text data-g=unitName data-i="+i+" value=\""+esc(g.unitName||"")+"\" placeholder='add unit' style='width:70px'></td>"+
+       "<td class=num><input type=number step=any data-g=unit data-i="+i+" value=\""+(+g.unit||1)+"\" style='width:75px;text-align:right'></td>"+
+       "<td class=num><input type=number step=any data-g=unitCost data-i="+i+" value=\""+(+g.unitCost||0)+"\" style='width:90px;text-align:right'></td>"+
+       "<td class=num>"+money(subUnit(g))+(g.unitName?" <span style='color:var(--muted)'>/ "+esc(g.unitName)+"</span>":"")+"</td>"+
+       "<td class=num><input type=number step=any data-g=opening data-i="+i+" value=\""+(+(ioOpen[g.name]||0))+"\" style='width:90px;text-align:right'></td>"+
+       "<td style='white-space:nowrap'><button class=rowedit data-edit-ing="+i+" title='Edit ingredient'>✎</button> <button class=rowdel data-del-ing="+i+" title='Delete'>✕</button></td></tr>";
+  });
+  h+="</tbody>";
+  $("tIngs").innerHTML=h;
+}
+$("ingAddBtn").addEventListener("click",()=>{
+  editingIng=-1;
+  $("ingModalTitle").textContent="Add ingredient";
+  $("ngName").value=""; $("ngUnitName").value=""; $("ngUnit").value=""; $("ngCost").value=""; $("ngOpen").value="";
+  fillCatSelect("ngCategory","ings","");
+  $("ngCategoryNew").value=""; $("ngCategoryNew").style.display="none";
+  updateNgSub();
+  openModal("ingModalBg");
+});
+$("ngSave").addEventListener("click",()=>{
+  const name=$("ngName").value.trim();
+  if(!name){ alert("Give the ingredient a name."); return; }
+  const dup=findIng(name);
+  if(dup && dup!==S.ingredients[editingIng]){ alert("An ingredient with this name already exists."); return; }
+  const cat=catFromSelect("ngCategory","ngCategoryNew","ings");
+  if(cat===null) return;
+  const unit=+$("ngUnit").value||1;
+  const unitCost=+$("ngCost").value||0;
+  const unitName=$("ngUnitName").value.trim();
+  const open=+$("ngOpen").value||0;
+  if(editingIng>=0){
+    logAction("Ingredient updated: "+name);
+    const g=S.ingredients[editingIng];
+    const old=g.name;
+    g.name=name; g.category=cat; g.unit=unit; g.unitCost=unitCost; g.unitName=unitName;
+    if(li(name)!==li(old)){
+      S.outlets.forEach(o=>{
+        if(S.openings[o] && S.openings[o][old]!=null){ S.openings[o][name]=S.openings[o][old]; delete S.openings[o][old]; }
+        if(S.counts[o] && S.counts[o][old]!=null){ S.counts[o][name]=S.counts[o][old]; delete S.counts[o][old]; }
+      });
+      S.recipes.forEach(r=>{ if(li(r.ingredient)===li(old)) r.ingredient=name; });
+      S.movements.forEach(v=>{ if(li(v.ingredient)===li(old)) v.ingredient=name; });
+    }
+    const io=(S.outlets.find(o=>li(o)===li($("ingOutlet").value))||S.outlets[0]);
+    if(io){ if(!S.openings[io]) S.openings[io]={}; S.openings[io][name]=open; }
+    editingIng=-1;
+  } else {
+    S.ingredients.push({name,category:cat,unit,unitCost,unitName});
+    const io=(S.outlets.find(o=>li(o)===li($("ingOutlet").value))||S.outlets[0]);
+    if(io){ if(!S.openings[io]) S.openings[io]={}; S.openings[io][name]=open; }
+    logAction("Ingredient added: "+name);
+  }
+  closeModal("ingModalBg"); renderAll();
+});
+document.addEventListener("click",e=>{
+  const t=e.target;
+  if(t.getAttribute && t.getAttribute("data-edit-ing")!=null){
+    const i=+t.getAttribute("data-edit-ing");
+    const g=S.ingredients[i];
+    if(!g) return;
+    editingIng=i;
+    $("ingModalTitle").textContent="Edit ingredient — "+g.name;
+    $("ngName").value=g.name;
+    fillCatSelect("ngCategory","ings",g.category||"");
+    $("ngCategoryNew").value=""; $("ngCategoryNew").style.display="none";
+    $("ngUnitName").value=g.unitName||"";
+    $("ngUnit").value=(g.unit!=null?g.unit:"");
+    $("ngCost").value=(g.unitCost!=null?g.unitCost:"");
+    $("ngOpen").value=(function(){ const io=(S.outlets.find(o=>li(o)===li($("ingOutlet").value))||S.outlets[0]||""); const v=(S.openings[io]||{})[g.name]; return v!=null?v:""; })();
+    updateNgSub();
+    openModal("ingModalBg");
+  }
+});
+function updateNgSub(){
+  const u=+$("ngUnit").value||0, c=+$("ngCost").value||0, un=$("ngUnitName").value.trim();
+  $("ngSubInfo").textContent = u>0
+    ? ("Cost per Unit = "+money(c/u)+" per "+(un||"unit")+" — this is the number every recipe cost uses.")
+    : "Type the unit size and unit cost to see the cost per unit.";
+}
+["ngUnit","ngCost","ngUnitName"].forEach(id=>$(id).addEventListener("input",updateNgSub));
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset && t.dataset.g){
+    const i=+(t.dataset.i!=null?t.dataset.i:-1);
+    if(i<0 || !S.ingredients[i]) return;
+    const g=S.ingredients[i];
+    const field=t.dataset.g;
+    if(field==="unit"||field==="unitCost"){ g[field]=+t.value||0; renderAll(); }
+    else if(field==="unitName"){ g.unitName=t.value.trim(); renderAll(); }
+    else if(field==="opening"){
+      const io=(S.outlets.find(o=>li(o)===li($("ingOutlet").value))||S.outlets[0]);
+      if(io){ if(!S.openings[io]) S.openings[io]={}; S.openings[io][g.name]=+t.value||0; }
+      renderAll();
+    }
+    else{
+      const old=g.name, nw=t.value.trim();
+      if(nw && nw!==old){
+        g.name=nw;
+        S.outlets.forEach(o=>{
+          if(S.openings[o] && S.openings[o][old]!=null){ S.openings[o][nw]=S.openings[o][old]; delete S.openings[o][old]; }
+          if(S.counts[o] && S.counts[o][old]!=null){ S.counts[o][nw]=S.counts[o][old]; delete S.counts[o][old]; }
+        });
+        S.recipes.forEach(r=>{ if(li(r.ingredient)===li(old)) r.ingredient=nw; });
+        S.movements.forEach(v=>{ if(li(v.ingredient)===li(old)) v.ingredient=nw; });
+      }
+      renderAll();
+    }
+  }
+});
+document.addEventListener("click",e=>{
+  const t=e.target;
+  if(t.getAttribute && t.getAttribute("data-del-ing")!=null){
+    const g=S.ingredients[+t.getAttribute("data-del-ing")];
+    if(confirm("Delete this ingredient? (recipes and movements that use it will show a warning)")){
+      logAction("Ingredient deleted: "+(g?g.name:"?"));
+      S.ingredients.splice(+t.getAttribute("data-del-ing"),1); renderAll();
+    }
+  }
+});
+
+/* ---------- data tab ---------- */
+$("dMonth").addEventListener("change",e=>{ S.monthTitle=e.target.value.trim(); renderAll(); });
+$("btnExport").addEventListener("click",()=>{
+  const payload={ format:"bar-stock-backup-v2", savedAt:new Date().toISOString(),
+    data: JSON.parse(JSON.stringify(S)), archives: JSON.parse(JSON.stringify(ARCH)) };
+  const blob=new Blob([JSON.stringify(payload,null,1)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="bar-stock-backup-"+todayISO()+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+  logAction("Backup downloaded");
+});
+/* ---------- Excel export (Excel 2003 XML workbook — opens in Excel / Google Sheets) ---------- */
+function xlsEsc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function xlsSheet(name, headers, rows){
+  let xml='<Worksheet ss:Name="'+xlsEsc(name.slice(0,31))+'"><Table>';
+  xml+="<Row>"+headers.map(h=>'<Cell ss:StyleID="head"><Data ss:Type="String">'+xlsEsc(h)+"</Data></Cell>").join("")+"</Row>";
+  for(const r of rows){
+    xml+="<Row>"+r.map(c=>{
+      if(typeof c==="number" && isFinite(c)) return '<Cell><Data ss:Type="Number">'+c+"</Data></Cell>";
+      if(typeof c==="string" && /^\d{4}-\d{2}-\d{2}$/.test(c)) return '<Cell ss:StyleID="datecell"><Data ss:Type="DateTime">'+c+"T00:00:00.000</Data></Cell>";
+      return '<Cell><Data ss:Type="String">'+xlsEsc(c)+"</Data></Cell>";
+    }).join("")+"</Row>";
+  }
+  return xml+"</Table></Worksheet>";
+}
+function collectSheets(){
+  const sheets=[];
+  sheets.push({name:"Stock Card",
+    headers:["Ingredient","Opening","Purchase","TF-In","Issue (Store)","Sales","TF-Out","OC (manual)","Ent","Spoils","Expected Closing","Actual Count","Variance","Variance Value","Status"],
+    rows:stockRows().map(r=>[r.ing.name,r.opening,r.purchase,r.tfIn,r.issue,r.sales,r.tfOut,r.ocManual,r.ent,r.spoils,r.expected,r.actual==null?"":r.actual,r.variance==null?"":r.variance,r.varVal==null?"":Math.round(r.varVal*100)/100,r.status==="nc"?"NOT COUNTED":r.status])});
+  sheets.push({name:"Daily Sales",
+    headers:["Date","Outlet","Menu Item","Type","Qty","Amount"],
+    rows:S.sales.map(s=>{ const it=findItem(s.item); const t=s.type||""; const amt=t?0:(+s.qty||0)*((it&&+it.price)||0);
+      return [s.date,s.outlet||S.outlets[0]||"",s.item,t==="oc"?"OC":t==="ent"?"Ent":"Sale",+s.qty||0,Math.round(amt*100)/100]; })});
+  const cTo=$("conTo").value||todayISO(); const cFrom=$("conFrom").value|| cTo.slice(0,8)+"01";
+  const cons=consByRange(cFrom,cTo);
+  sheets.push({name:"Consumption",
+    headers:["Period","Ingredient","Category","Unit","Consumption","Raw Cost Amount"],
+    rows:S.ingredients.map(g=>({g,q:cons[li(g.name)]||0})).filter(r=>r.q>0).sort((a,b)=>a.g.name.localeCompare(b.g.name))
+      .map(r=>[cFrom+" -> "+cTo,r.g.name,r.g.category,r.g.unitName||"",Math.round(r.q*100)/100,Math.round(r.q*subUnit(r.g)*100)/100])});
+  sheets.push({name:"Movements",
+    headers:["Date","Outlet","Ingredient","Purchase","TF-In","Issue (Store)","TF-Out","OC","Ent","Spoils","Note"],
+    rows:S.movements.map(v=>[v.date,v.outlet||S.outlets[0]||"",v.ingredient,+v.purchase||0,+v.tfIn||0,+v.issue||0,+v.tfOut||0,+v.oc||0,+v.ent||0,+v.spoils||0,v.note||""])});
+  sheets.push({name:"Menu Items",
+    headers:["POS","Item Name","Category","Selling Price","Net Price (ex VAT)","VAT","Cost Price","Cost %"],
+    rows:S.items.map(it=>{ const cp=costPrice(it.name); const sell=(+it.price||0)/(it.vatIncluded?1.07:1);
+      const pct=sell>0?Math.round(cp/sell*1000)/10:null;
+      return [it.pos,it.name,it.category,+it.price||0,Math.round(sell*100)/100,it.vatIncluded?"incl 7%":"excl",Math.round(cp*100)/100,pct==null?"":pct]; })});
+  sheets.push({name:"Recipes",
+    headers:["Menu Item","Ingredient","Qty","Unit","Condiment +5%","Line Cost"],
+    rows:S.recipes.map(r=>{ const g=findIng(r.ingredient);
+      const lc=Math.round(((+r.qty||0)*(g?subUnit(g):0)*(r.condiment?1.05:1))*100)/100;
+      return [r.menu,r.ingredient,+r.qty||0,g?(g.unitName||""):"",r.condiment?"yes":"no",lc]; })});
+  sheets.push({name:"Inventory",
+    headers:["Ingredient","Category","Unit","Size","Unit Cost","Cost per Unit","Opening Qty"],
+    rows:S.ingredients.map(g=>{ const all=openingsFor("all");
+      return [g.name,g.category,g.unitName||"",+g.unit||0,+g.unitCost||0,Math.round(subUnit(g)*100)/100,+(all[g.name]||0)]; })});
+  const tsTo=$("tsTo").value||todayISO(); const tsFrom=(tsMode==="mtd")? tsTo.slice(0,8)+"01" : ($("tsFrom").value||tsTo);
+  const sold=salesByRange(tsFrom,tsTo);
+  const tRows=S.items.map(it=>({it,q:sold[li(it.name)]||0})).filter(r=>r.q>0)
+    .map(r=>({it:r.it,q:r.q,rev:r.q*(+r.it.price||0)})).sort((a,b)=>b.rev-a.rev);
+  const totRev=tRows.reduce((s,r)=>s+r.rev,0);
+  sheets.push({name:"Top Sales",
+    headers:["Period","Rank","POS","Menu Item","Category","Qty Sold","Revenue","Revenue %"],
+    rows:tRows.map((r,i)=>[tsFrom+" -> "+tsTo,i+1,r.it.pos,r.it.name,r.it.category,r.q,Math.round(r.rev*100)/100,totRev>0?Math.round(r.rev/totRev*1000)/10:""])});
+  const fDays=5; const avg0={}; const fc=consByRange(addDaysISO(todayISO(),-(fDays-1)),todayISO());
+  for(const k in fc) avg0[k]=fc[k]/fDays;
+  sheets.push({name:"Forecast",
+    headers:["Ingredient","Category","Unit","Stock Now","Avg/Day (5d)","Need 4 Days","Left After 4 Days","Suggest Order","Days Left","Status"],
+    rows:stockRows().map(r=>{ const auto=avg0[li(r.ing.name)]||0; const ov=S.forecastAvg[r.ing.name];
+      const avg=(ov!=null&&ov!=="")?+ov:auto; const need=Math.round(avg*4*100)/100; const left=Math.round((r.expected-need)*100)/100;
+      const dl=avg>0?Math.round(r.expected/avg*10)/10:null;
+      const st=avg<=0?"no usage":(dl<1?"OUT":dl<=2?"LOW":dl<=4?"<= 4 days":"OK");
+      const ord=left<0?Math.round((-left)*100)/100:"";
+      return [r.ing.name,r.ing.category,r.ing.unitName||"",r.expected,Math.round(avg*100)/100,need,left,ord,dl==null?"":dl,st]; })});
+  return sheets;
+}
+/* ---------- minimal .xlsx writer (zip with stored entries) ---------- */
+const CRC_TABLE=(function(){ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); t[n]=c>>>0; } return t; })();
+function crc32(u8){ let c=0xFFFFFFFF; for(let i=0;i<u8.length;i++) c=CRC_TABLE[(c^u8[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function makeZip(files){
+  const enc=new TextEncoder(), now=new Date();
+  const dosTime=((now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>>1))&0xFFFF;
+  const dosDate=(((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate())&0xFFFF;
+  const chunks=[], central=[]; let offset=0;
+  for(const f of files){
+    const name=enc.encode(f.name), crc=crc32(f.data), len=f.data.length;
+    const lh=new Uint8Array(30+name.length), dv=new DataView(lh.buffer);
+    dv.setUint32(0,0x04034b50,true); dv.setUint16(4,20,true); dv.setUint16(6,0x0800,true); dv.setUint16(8,0,true);
+    dv.setUint16(10,dosTime,true); dv.setUint16(12,dosDate,true);
+    dv.setUint32(14,crc,true); dv.setUint32(18,len,true); dv.setUint32(22,len,true);
+    dv.setUint16(26,name.length,true); dv.setUint16(28,0,true);
+    lh.set(name,30);
+    chunks.push(lh,f.data);
+    const cn=new Uint8Array(46+name.length), cv=new DataView(cn.buffer);
+    cv.setUint32(0,0x02014b50,true); cv.setUint16(4,20,true); cv.setUint16(6,20,true);
+    cv.setUint16(8,0x0800,true); cv.setUint16(10,0,true);
+    cv.setUint16(12,dosTime,true); cv.setUint16(14,dosDate,true);
+    cv.setUint32(16,crc,true); cv.setUint32(20,len,true); cv.setUint32(24,len,true);
+    cv.setUint16(28,name.length,true);
+    cv.setUint32(38,0,true); cv.setUint32(42,offset,true);
+    cn.set(name,46);
+    central.push(cn);
+    offset+=lh.length+len;
+  }
+  let cdSize=0; central.forEach(c=>cdSize+=c.length);
+  const eo=new Uint8Array(22), ev=new DataView(eo.buffer);
+  ev.setUint32(0,0x06054b50,true); ev.setUint16(8,files.length,true); ev.setUint16(10,files.length,true);
+  ev.setUint32(12,cdSize,true); ev.setUint32(16,offset,true);
+  return new Blob(chunks.concat(central,[eo]),{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+function colRef(n){ let s=""; n++; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=(n-m-1)/26; } return s; }
+function xlsxEsc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function excelSerial(iso){ return Math.round((Date.UTC(+iso.slice(0,4),+iso.slice(5,7)-1,+iso.slice(8,10))-Date.UTC(1899,11,30))/86400000); }
+function buildXlsxFiles(){
+  const sheets=collectSheets();
+  const enc=new TextEncoder();
+  const files=[];
+  files.push({name:"[Content_Types].xml",data:enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+    '<Default Extension="xml" ContentType="application/xml"/>'+
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+
+    sheets.map((s,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join("")+
+    '</Types>')});
+  files.push({name:"_rels/.rels",data:enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'+
+    '</Relationships>')});
+  files.push({name:"xl/workbook.xml",data:enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+    '<sheets>'+sheets.map((s,i)=>'<sheet name="'+xlsxEsc(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>').join("")+'</sheets></workbook>')});
+  files.push({name:"xl/_rels/workbook.xml.rels",data:enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+    sheets.map((s,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join("")+
+    '<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'+
+    '</Relationships>')});
+  files.push({name:"xl/styles.xml",data:enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+    '<numFmts count="1"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/></numFmts>'+
+    '<fonts count="2"><font><b/><color rgb="FF4B3A21"/><sz val="11"/></font><font><sz val="11"/></font></fonts>'+
+    '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEFD9A7"/></patternFill></fill></fills>'+
+    '<borders count="1"><border/></borders>'+
+    '<cellStyleXfs count="1"><xf/></cellStyleXfs>'+
+    '<cellXfs count="3">'+
+    '<xf xfId="0"/>'+
+    '<xf xfId="0" applyFont="1" applyFill="1" fontId="0" fillId="2"/>'+
+    '<xf xfId="0" applyNumberFormat="1" numFmtId="164"/>'+
+    '</cellXfs></styleSheet>')});
+  sheets.forEach((s,si)=>{
+    let x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';
+    x+='<row r="1">'+s.headers.map((h,ci)=>'<c r="'+colRef(ci)+'1" s="1" t="inlineStr"><is><t>'+xlsxEsc(h)+'</t></is></c>').join("")+'</row>';
+    s.rows.forEach((r,ri)=>{
+      x+='<row r="'+(ri+2)+'">';
+      r.forEach((c,ci)=>{
+        const ref=colRef(ci)+(ri+2);
+        if(typeof c==="number" && isFinite(c)) x+='<c r="'+ref+'"><v>'+c+'</v></c>';
+        else if(typeof c==="string" && /^\d{4}-\d{2}-\d{2}$/.test(c)) x+='<c r="'+ref+'" s="2"><v>'+excelSerial(c)+'</v></c>';
+        else x+='<c r="'+ref+'" t="inlineStr"><is><t>'+xlsxEsc(c)+'</t></is></c>';
+      });
+      x+='</row>';
+    });
+    x+='</sheetData></worksheet>';
+    files.push({name:"xl/worksheets/sheet"+(si+1)+".xml",data:enc.encode(x)});
+  });
+  return files;
+}
+function buildXlsxBlob(){
+  return makeZip(buildXlsxFiles());
+}
+$("btnExcel").addEventListener("click",()=>{
+  const blob=buildXlsxBlob();
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="bar-stock-"+todayISO()+".xlsx";
+  a.click(); URL.revokeObjectURL(a.href);
+  logAction("Exported to Excel (.xlsx)");
+});
+/* ---------- Excel auto-save: mirror to a local .xlsx file via auto_excel_server.js ----------
+   Every save() also sends the same workbook the "Export to Excel" button builds to the
+   local server, which writes it over Bar_Stock_Control_Auto.xlsx. localStorage stays the
+   master store and every other feature is untouched. If the server is not running, the
+   app simply behaves exactly as before (mirroring is skipped with a status note). */
+const EXCEL_AUTO_SERVER="http://127.0.0.1:8765";            // must match auto_excel_server.js
+const EXCEL_AUTO_FILE="Bar_Stock_Control_Auto.xlsx";
+const EXCEL_AUTO_DEBOUNCE=1200;                             // ms — coalesce rapid saves
+let excelAutoTimer=null, excelAutoBusy=false, excelAutoQueued=false;
+let excelAutoState="idle", excelAutoSig=null;
+function excelAutoStatus(kind,txt){
+  excelAutoState=kind;
+  const el=$("excelAutoSt"); if(!el) return;
+  const dot={ok:"var(--ok)",check:"var(--muted)",offline:"var(--over)",locked:"var(--low)",err:"var(--low)"}[kind]||"var(--muted)";
+  el.innerHTML='<span style="color:'+dot+'">●</span> '+txt;
+}
+function scheduleExcelAutoPush(){
+  if(excelAutoBusy){ excelAutoQueued=true; return; }
+  if(excelAutoTimer) clearTimeout(excelAutoTimer);
+  excelAutoTimer=setTimeout(pushExcelNow,EXCEL_AUTO_DEBOUNCE);
+}
+function excelAutoSigOf(){ try{ return JSON.stringify(S); }catch(e){ return null; } }
+async function pushExcelNow(){
+  if(excelAutoTimer){ clearTimeout(excelAutoTimer); excelAutoTimer=null; }
+  if(excelAutoBusy || typeof buildXlsxBlob!=="function"){ excelAutoQueued=true; return; }
+  const sig=excelAutoSigOf();
+  if(sig!==null && sig===excelAutoSig){ excelAutoStatus("ok","Excel auto-save ✓ · "+EXCEL_AUTO_FILE+" is up to date"); return; }
+  excelAutoBusy=true;
+  let blob;
+  try{ blob=buildXlsxBlob(); }
+  catch(e){ excelAutoBusy=false; excelAutoStatus("err","Excel export could not be built: "+(e&&e.message||e)); return; }
+  try{
+    const res=await fetch(EXCEL_AUTO_SERVER+"/save",{
+      method:"POST",
+      headers:{"Content-Type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
+      body:blob
+    });
+    const j=await res.json().catch(()=>({}));
+    if(res.status===423) excelAutoStatus("locked","Excel copy locked — "+EXCEL_AUTO_FILE+" is open in Excel? Close it; the next save retries automatically.");
+    else if(res.ok && j && j.ok){ excelAutoSig=sig; excelAutoStatus("ok","Excel auto-save ✓ · "+EXCEL_AUTO_FILE+" updated "+new Date().toLocaleTimeString()); }
+    else excelAutoStatus("err","Excel auto-save failed (HTTP "+(res.status||"?")+") — the app still saves normally.");
+  }catch(e){
+    excelAutoStatus("offline","Server offline — Excel auto-save OFF · double-click start_excel_sync.bat");
+  }finally{
+    excelAutoBusy=false;
+    if(excelAutoQueued){ excelAutoQueued=false; scheduleExcelAutoPush(); }
+  }
+}
+async function excelAutoCheck(){
+  try{
+    const res=await fetch(EXCEL_AUTO_SERVER+"/status",{cache:"no-store"});
+    const j=await res.json().catch(()=>({}));
+    if(res.ok && j && j.ok){
+      if(j.exists) excelAutoStatus("ok","Server connected · "+EXCEL_AUTO_FILE+" last updated "+(j.modified?j.modified.slice(0,19).replace("T"," "):"?"));
+      else excelAutoStatus("check","Server connected · first save will create "+EXCEL_AUTO_FILE);
+    } else excelAutoStatus("err","Excel auto-save server error (HTTP "+(res.status||"?")+").");
+  }catch(e){
+    excelAutoStatus("offline","Server offline — Excel auto-save OFF · double-click start_excel_sync.bat");
+  }
+}
+/* pagehide flush: send a pending debounced save synchronously when leaving,
+   so the newest data is not lost if the page closes within the debounce window */
+function excelFlushSync(){
+  if(excelAutoBusy || !excelAutoTimer) return;
+  clearTimeout(excelAutoTimer); excelAutoTimer=null;
+  try{
+    const blob=buildXlsxBlob();
+    const x=new XMLHttpRequest();
+    x.open("POST",EXCEL_AUTO_SERVER+"/save",false);
+    x.setRequestHeader("Content-Type","text/plain"); // simple request → no preflight needed for sync send
+    x.send(blob);
+  }catch(e){}
+}
+window.addEventListener("pagehide",()=>{ flushPendingSave(); excelFlushSync(); });
+/* ---------- inventory count import / export ---------- */
+function buildCountTemplateXml(onlyOutlet){
+  const sheets=[];
+  const safe=n=>String(n).replace(/[\\\/?:*\[\]]/g," ").trim().slice(0,24);
+  const outs=(onlyOutlet && S.outlets.find(o=>li(o)===li(onlyOutlet))) ? [S.outlets.find(o=>li(o)===li(onlyOutlet))] : S.outlets;
+  outs.forEach(o=>{
+    const rows=stockRows(o).map(r=>[
+      r.ing.name, r.ing.category, r.ing.unitName||"", +r.ing.unit||0,
+      Math.round(r.expected*100)/100,
+      (S.counts[o] && S.counts[o][r.ing.name]!=null) ? S.counts[o][r.ing.name] : ""
+    ]);
+    sheets.push(xlsSheet("Count - "+safe(o),
+      ["Ingredient","Category","Unit","Size","Expected Stock","Count (fill this)"],
+      rows));
+  });
+  sheets.push(xlsSheet("How to fill",
+    ["Step","Instruction"],
+    [[1,"One sheet per outlet - walk the bar and type what you actually counted in the Count column."],
+     [2,"Leave Count blank for anything you did not count - it stays not-counted."],
+     [3,"Do not change the Ingredient names - they match the Inventory list."],
+     [4,"When done: Save As - XML Spreadsheet 2003, then import with the Import counts button."]]));
+  return '<?xml version="1.0"?>\n<?mso-application progid="Excel.Sheet"?>\n'+
+    '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'+
+    '<Styles>'
+    +'<Style ss:ID="datecell"><NumberFormat ss:Format="dd/mm/yyyy"/></Style>'
+    +'<Style ss:ID="head"><Font ss:Bold="1" ss:Color="#4B3A21"/>'
+    +'<Interior ss:Color="#EFD9A7" ss:Pattern="Solid"/></Style>'
+    +'</Styles>'
+    + sheets.join("")+"</Workbook>";
+}
+$("btnCountTpl").addEventListener("click",()=>{
+  const blob=new Blob(["\ufeff"+buildCountTemplateXml()],{type:"application/vnd.ms-excel"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="inventory-count-"+todayISO()+".xls";
+  a.click(); URL.revokeObjectURL(a.href);
+});
+$("btnCountImportPick").addEventListener("click",()=>{
+  if(role!=="admin"){ alert("Only admin can import counts."); return; }
+  $("fileCount").click();
+});
+$("fileCount").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ handleCountImport(String(rd.result), f.name); };
+  rd.readAsText(f,"utf-8");
+  e.target.value="";
+});
+function handleCountImport(text,fname){
+  let groups=[];
+  try{
+    if(/\.csv$/i.test(fname||"") || text.trim().indexOf("<")!==0){
+      const rows=parseCsvText(text);
+      let hi=rows.findIndex(r=>r.some(c=>li(c)==="ingredient"));
+      if(hi<0) throw new Error("no header");
+      const head=rows[hi].map(c=>li(c));
+      const cO=head.indexOf("outlet"), cI=head.indexOf("ingredient");
+      const cC=head.findIndex(c=>c.indexOf("count")===0);
+      if(cI<0||cC<0) throw new Error("cols");
+      for(let i=hi+1;i<rows.length;i++){
+        const r=rows[i]; if(!r) continue;
+        const o=String(r[cO]||"").trim()||S.outlets[0];
+        const nm=r[cI]!=null?String(r[cI]).trim():"";
+        const v=r[cC]!=null?String(r[cC]).trim():"";
+        if(!nm && v==="") continue;
+        groups.push({name:o, rows:[["Ingredient","Count"],[nm,v]]});
+      }
+    } else {
+      groups=parseXlsXmlSheets(text);
+    }
+  }catch(err){ alert("Could not read this file. Save it as XML Spreadsheet 2003 or CSV UTF-8."); return; }
+  let set=0, cleared=0, skipped=0; const errs=[];
+  for(const g of groups){
+    const m=g.name.match(/^count\s*[-\u2013\u2014:]?\s*(.*)$/i);
+    const rest=(m&&m[1]||"").trim();
+    const outlet=S.outlets.find(o=>li(o)===li(rest));
+    if(!outlet){ skipped++; errs.push("sheet \""+g.name+"\": unknown outlet"); continue; }
+    let hi=g.rows.findIndex(r=>r.some(c=>li(c)==="ingredient"));
+    if(hi<0) continue;
+    const head=g.rows[hi].map(c=>li(c));
+    const cI=head.indexOf("ingredient");
+    const cC=head.findIndex(c=>c.indexOf("count")===0);
+    if(cI<0||cC<0){ skipped++; errs.push("["+g.name+"] missing Ingredient/Count columns"); continue; }
+    if(!S.counts[outlet]) S.counts[outlet]={};
+    for(let i=hi+1;i<g.rows.length;i++){
+      const r=g.rows[i]; if(!r) continue;
+      const nm=r[cI]!=null?String(r[cI]).trim():"";
+      const v=r[cC]!=null?String(r[cC]).trim():"";
+      if(!nm) continue;
+      const ing=findIng(nm);
+      if(!ing){ skipped++; errs.push("unknown ingredient \""+nm+"\""); continue; }
+      if(v===""){
+        if(S.counts[outlet][ing.name]!=null){ delete S.counts[outlet][ing.name]; cleared++; }
+      } else {
+        const num=parseFloat(v.replace(",","."));
+        if(!isFinite(num)){ skipped++; errs.push("bad count \""+v+"\" for "+nm); continue; }
+        S.counts[outlet][ing.name]=num; set++;
+      }
+    }
+  }
+  renderAll();
+  logAction("Counts imported: "+set+" set, "+cleared+" cleared"+(skipped?", "+skipped+" skipped":""));
+  alert("Counts updated: "+set+" set"+(cleared?", "+cleared+" cleared":"")+"."+(skipped?"\n\nSkipped "+skipped+" rows:\n"+errs.slice(0,10).join("\n"):""));
+}
+/* ---------- sales import ---------- */
+function buildSalesTemplateXml(){
+  const sheets=[];
+  const safe=n=>String(n).replace(/[\\\/?:*\[\]]/g," ").trim().slice(0,24);
+  S.outlets.forEach(o=>{
+    sheets.push(xlsSheet("Sales - "+safe(o),
+      ["Date","Menu Item","Qty","Type"],
+      [[todayISO(), S.items[0]?S.items[0].name:"", 1, ""]]));
+  });
+  sheets.push(xlsSheet("How to fill",
+    ["Step","Instruction"],
+    [[1,"One sheet per outlet - fill each outlet's drinks on its own sheet (the sheet name is the outlet)."],
+     [2,"Date format: YYYY-MM-DD or DD-MM-YY (examples: 2026-09-06, 07-09-26). Excel date cells work too."],
+     [3,"Menu Item: the item NAME or its POS number - both are in the Menu Items sheet."],
+     [4,"Qty: a number greater than 0."],
+     [5,"Type: leave blank = normal paid sale; OC / Ent = complimentary (no revenue, stock still deducted)."],
+     [6,"When done: Save As - XML Spreadsheet 2003 (or CSV UTF-8, first outlet sheet only), then import that file back here."]]));
+  sheets.push(xlsSheet("Menu Items",
+    ["POS","Menu Item"],
+    S.items.map(it=>[it.pos,it.name])));
+  return '<?xml version="1.0"?>\n<?mso-application progid="Excel.Sheet"?>\n'+
+    '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'+
+    '<Styles>'
+    +'<Style ss:ID="datecell"><NumberFormat ss:Format="dd/mm/yyyy"/></Style>'
+    +'<Style ss:ID="head"><Font ss:Bold="1" ss:Color="#4B3A21"/>'
+    +'<Interior ss:Color="#EFD9A7" ss:Pattern="Solid"/></Style>'
+    +'</Styles>'
+    + sheets.join("")+"</Workbook>";
+}
+$("btnSalesTpl").addEventListener("click",()=>{
+  const blob=new Blob(["\ufeff"+buildSalesTemplateXml()],{type:"application/vnd.ms-excel"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="sales-import-template.xls";
+  a.click(); URL.revokeObjectURL(a.href);
+});
+$("btnSalesImportPick").addEventListener("click",()=>{
+  if(role!=="admin"){ alert("Only admin can import sales."); return; }
+  $("fileSales").click();
+});
+$("fileSales").addEventListener("change",e=>{
+  const f=e.target.files[0];
+  if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ handleSalesImport(String(rd.result), f.name); };
+  rd.readAsText(f,"utf-8");
+  e.target.value="";
+});
+function parseCsvText(text){
+  const rows=[]; let row=[], cur="", q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===","){ row.push(cur); cur=""; }
+    else if(ch==="\n"||ch==="\r"){ if(ch==="\r"&&text[i+1]==="\n") i++; row.push(cur); cur=""; if(row.some(c=>c!=="")) rows.push(row); row=[]; }
+    else cur+=ch;
+  }
+  if(row.some(c=>c!=="")) rows.push(row);
+  return rows;
+}
+function parseXlsXmlSheets(text){
+  const doc=new DOMParser().parseFromString(text,"text/xml");
+  if(doc.querySelector("parsererror")) throw new Error("not xml");
+  return [...doc.getElementsByTagName("Worksheet")].map(w=>{
+    const name=(w.getAttribute("ss:Name")||"").trim();
+    const rows=[];
+    for(const rowEl of w.getElementsByTagName("Row")){
+      const cells=[]; let idx=0;
+      for(const c of rowEl.getElementsByTagName("Cell")){
+        const idxAttr=c.getAttribute("ss:Index");
+        if(idxAttr) idx=(parseInt(idxAttr,10)||1)-1;
+        const dataEl=c.getElementsByTagName("Data")[0];
+        cells[idx]=dataEl?dataEl.textContent:"";
+        idx++;
+      }
+      rows.push(cells);
+    }
+    return {name, rows};
+  });
+}
+function normalizeImportDate(d){
+  d=String(d||"").trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(d)) return d.slice(0,10);
+  if(/^\d{4,5}$/.test(d)){
+    const dt=new Date(Date.UTC(1899,11,30)+parseInt(d,10)*86400000);
+    return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
+  }
+  const m=d.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if(m) return m[3]+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0");
+  return d;
+}
+function processSalesRows(rows, defaultOutlet, label){
+  let hi=rows.findIndex(r=>r.some(c=>li(c)==="date"));
+  if(hi<0) return {added:0, skipped:rows.filter(r=>r.some(c=>String(c||"").trim()!=="")).length, errs:[]};
+  const head=rows[hi].map(c=>li(c));
+  const cDate=head.indexOf("date");
+  const cOutlet=head.indexOf("outlet");
+  const cItem=head.findIndex(c=>c==="menu item"||c==="item");
+  const cPos=head.findIndex(c=>c==="pos"||c==="pos code");
+  const cQty=head.findIndex(c=>c==="qty"||c==="quantity");
+  const cType=head.indexOf("type");
+  if(cDate<0 || (cItem<0&&cPos<0) || cQty<0) return {added:0, skipped:0, errs:["missing Date / Menu Item / Qty columns"]};
+  let added=0, skipped=0; const errs=[];
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i]; if(!r) continue;
+    let rawName=r[cItem];
+    if((rawName==null||String(rawName).trim()==="") && cPos>=0) rawName=r[cPos];
+    const rawDate=r[cDate], rawQty=r[cQty];
+    if((rawDate==null||rawDate==="") && (rawName==null||rawName==="") && (rawQty==null||rawQty==="")) continue;
+    const line=(label? label+" " : "")+"row "+(i+1);
+    const date=normalizeImportDate(rawDate);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){ skipped++; errs.push(line+": bad date \""+rawDate+"\""); continue; }
+    const rawOutlet=String(cOutlet>=0?(r[cOutlet]==null?"":r[cOutlet]):"").trim();
+    const outlet=S.outlets.find(o=>li(o)===li(rawOutlet)) || (rawOutlet?null:defaultOutlet) || S.outlets[0];
+    if(!outlet){ skipped++; errs.push(line+": unknown outlet \""+rawOutlet+"\""); continue; }
+    const it=findItemForImport(rawName);
+    if(!it){ skipped++; errs.push(line+": unknown menu item or POS \""+rawName+"\""); continue; }
+    const q=parseFloat(String(rawQty==null?"":rawQty).replace(",","."));
+    if(!(q>0)){ skipped++; errs.push(line+": qty must be a number greater than 0"); continue; }
+    const tRaw=String(cType>=0?(r[cType]==null?"":r[cType]):"").trim().toLowerCase();
+    let type="";
+    if(tRaw==="oc") type="oc";
+    else if(tRaw==="ent") type="ent";
+    else if(tRaw && tRaw!=="sale"){ skipped++; errs.push(line+": unknown type \""+tRaw+"\" (use blank, OC or Ent)"); continue; }
+    if(role==="staff" && date!==todayISO()){ skipped++; errs.push(line+": staff can only import today's sales"); continue; }
+    S.sales.push({date,item:it.name,qty:q,outlet,type});
+    added++;
+  }
+  return {added, skipped, errs};
+}
+function handleSalesImport(text,fname){
+  const isCsv=(/\.csv$/i.test(fname||"") || text.trim().indexOf("<")!==0);
+  let groups=[];
+  try{
+    if(isCsv){
+      groups.push({name:"CSV", rows:parseCsvText(text), outlet:null});
+    } else {
+      groups=parseXlsXmlSheets(text).filter(g=>{
+        return !(/how to fill/i.test(g.name)) && !(/^menu items/i.test(g.name));
+      }).map(g=>{
+        const m=g.name.match(/^sales\b\s*[-\u2013\u2014:]?\s*(.*)$/i);
+        const rest=(m&&m[1]||"").trim();
+        let outlet=S.outlets[0], unknown=false;
+        if(rest){
+          const hit=S.outlets.find(o=>li(o)===li(rest));
+          if(hit) outlet=hit; else unknown=true;
+        }
+        return {name:g.name, rows:g.rows, outlet, unknown};
+      });
+    }
+  }catch(err){
+    alert("Could not read this file. Save it as XML Spreadsheet 2003 or CSV UTF-8 (note: .xlsx import is not supported).");
+    return;
+  }
+  let added=0, skipped=0; const errs=[];
+  for(const g of groups){
+    if(g.unknown){ skipped++; errs.push("sheet \""+g.name+"\": unknown outlet"); continue; }
+    const res=processSalesRows(g.rows, g.outlet, g.name);
+    added+=res.added; skipped+=res.skipped;
+    res.errs.forEach(x=>errs.push("["+g.name+"] "+x));
+  }
+  renderAll();
+  logAction("Sales imported: "+added+" rows from file"+(skipped?" ("+skipped+" skipped)":""));
+  alert("Imported "+added+" sales."+(skipped?"\n\nSkipped "+skipped+" rows:\n"+errs.slice(0,10).join("\n"):""));
+}
+$("btnImportPick").addEventListener("click",()=>$("fileImport").click());
+$("fileImport").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const d=JSON.parse(rd.result);
+      const payload=(d&&d.format==="bar-stock-backup-v2")?d.data:d;
+      if(!payload||!Array.isArray(payload.items)||!Array.isArray(payload.ingredients)) throw 0;
+      /* restore closed months whether they came from the new separate key or an old backup */
+      if(d && d!==payload && Array.isArray(d.archives)){ ARCH=d.archives; persistArchives(); }
+      else if(payload && Array.isArray(payload.archives)){ ARCH=payload.archives; persistArchives(); }
+      S=normalize(payload);
+      delete S.archives;
+      renderAll(); alert("Backup loaded ✓");
+      logAction("Backup loaded from file");
+    }catch(err){ alert("This file is not a valid backup."); }
+  };
+  rd.readAsText(f);
+  e.target.value="";
+});
+function confirmDlg(title,body,fn){
+  $("dlgTitle").textContent=title; $("dlgBody").textContent=body;
+  const dlg=$("dlg"); dlg.showModal();
+  $("dlgYes").onclick=()=>{ dlg.close(); fn(); };
+  $("dlgNo").onclick=()=>dlg.close();
+}
+function doMonthRollover(){
+  archiveCurrentMonth(); // save the closing month to Closed months (Data/Backup) before it is cleared
+  const open={};
+  for(const o of S.outlets){
+    open[o]={};
+    for(const r of stockRows(o)){ open[o][r.ing.name]=(r.actual!=null)?r.actual:r.expected; }
+  }
+  const now=new Date();
+  S.monthTitle=now.toLocaleDateString(undefined,{month:"long",year:"numeric"});
+  S.openings=open; S.sales=[]; S.movements=[]; S.counts={};
+  logAction("MONTH END completed — closing month saved to Closed-months history, per-outlet counted openings rolled over, sales/movements/counts cleared");
+  renderAll();
+}
+$("btnNewMonth").addEventListener("click",()=>{
+  confirmDlg("Start a new month?",
+    "For every outlet: Opening for the new month = Actual Count (or Expected Closing where not counted). Sales, movements and counts are cleared. The closing month is saved automatically to Closed months. Download a backup first — this cannot be undone.",
+    doMonthRollover);
+});
+
+/* ---------- month end (Stock Card) ---------- */
+function meOutletNow(){
+  return (S.outlets.find(o=>li(o)===li($("meOutlet").value))||S.outlets[0]||"");
+}
+function openMonthEnd(){
+  if(!S.outlets.length){ alert("Add an outlet first — press ⚙ Outlets next to the Outlet picker."); return; }
+  const def=outletDefault();
+  $("meOutlet").innerHTML=S.outlets.map(o=>"<option value=\""+esc(o)+"\""+(li(o)===li(def)?" selected":"")+">"+esc(o)+"</option>").join("");
+  $("meWarn").style.display="none";
+  renderMonthEnd();
+  openModal("meModalBg");
+}
+function meMissingCounts(){
+  const missing={}; let total=0;
+  for(const o of S.outlets){
+    const list=S.ingredients.filter(g=>{ const v=(S.counts[o]||{})[g.name]; return v==null||v===""; });
+    if(list.length){ missing[o]=list.map(g=>g.name); total+=list.length; }
+  }
+  return {missing,total};
+}
+function renderMonthEnd(){
+  const of=meOutletNow();
+  const rows=stockRows(of);
+  let counted=0;
+  let h="<thead><tr><th>Ingredient</th><th>Unit</th><th class=num>Expected Closing</th><th style='width:130px'>Actual Count</th></tr></thead><tbody>";
+  for(const r of rows){
+    const v=(S.counts[of]||{})[r.ing.name];
+    const has=v!=null&&v!=="";
+    if(has) counted++;
+    h+="<tr><td>"+esc(r.ing.name)+"</td><td>"+esc(r.ing.unitName||"—")+"</td><td class=num>"+qtyf(r.expected)+"</td>"+
+       "<td><input type=number step=any class='meCountIn"+(has?"":" missing")+"' data-ing=\""+esc(r.ing.name)+"\" value=\""+(has?esc(v):"")+"\" placeholder='count' style='width:100px;text-align:right'></td></tr>";
+  }
+  h+="</tbody>";
+  $("tMonthEnd").innerHTML=h;
+  updateMeProgress();
+}
+function updateMeProgress(){
+  const of=meOutletNow();
+  const rows=stockRows(of);
+  let counted=0;
+  for(const r of rows){ const v=(S.counts[of]||{})[r.ing.name]; if(v!=null&&v!=="") counted++; }
+  $("meProgress").textContent = rows.length
+    ? ("Counted "+counted+" of "+rows.length+" ingredients"+(counted===rows.length?" — complete ✓":""))
+    : "No ingredients in the stock list.";
+}
+$("btnMonthEnd").addEventListener("click",openMonthEnd);
+$("meOutlet").addEventListener("change",renderMonthEnd);
+document.addEventListener("change",e=>{
+  if(!e.target.classList || !e.target.classList.contains("meCountIn")) return;
+  const name=e.target.dataset.ing;
+  const of=meOutletNow();
+  const v=e.target.value;
+  if(!of) return;
+  if(!S.counts[of]) S.counts[of]={};
+  if(v==="") delete S.counts[of][name]; else S.counts[of][name]=+v;
+  e.target.classList.toggle("missing", v==="");
+  invalidateCaches();
+  updateMeProgress(); // no table rebuild — keeps the cursor where you are
+  saveSoon();
+});
+/* Enter = save this count and jump to the next ingredient to fill */
+function countEnterJump(e,sel){
+  if(e.key!=="Enter") return;
+  e.preventDefault();
+  const t=e.target;
+  const inputs=[...document.querySelectorAll(sel)];
+  const nxt=inputs[inputs.indexOf(t)+1];
+  window.__pendingCountFocus=nxt?(nxt.dataset.ing||null):null;
+  t.dispatchEvent(new Event("change",{bubbles:true})); // commit the typed value now
+  if(nxt){ nxt.focus(); if(nxt.select) nxt.select(); }
+  else t.blur();
+}
+document.addEventListener("keydown",e=>{
+  if(e.target.classList && e.target.classList.contains("meCountIn")) countEnterJump(e,"#tMonthEnd .meCountIn");
+  if(e.target.classList && e.target.classList.contains("countIn")) countEnterJump(e,"#tStock .countIn");
+});
+function meShowMissing(){
+  const {missing,total}=meMissingCounts();
+  if(total){
+    const lines=S.outlets.filter(o=>missing[o]).map(o=>"• "+o+": "+missing[o].join(", "));
+    $("meWarn").style.display="block";
+    $("meWarn").innerHTML="<b>⚠ Month end blocked — "+total+" Actual Count"+(total>1?"s are":" is")+" still missing. Fill every ingredient for every outlet:</b><ul>"+lines.map(l=>"<li>"+esc(l)+"</li>").join("")+"</ul>";
+    alert("Month end cannot finish — "+total+" Actual Count"+(total>1?"s are":" is")+" still missing:\n\n"+lines.join("\n"));
+    const first=S.outlets.find(o=>missing[o]);
+    if(first){ $("meOutlet").value=first; renderMonthEnd(); }
+    return false;
+  }
+  $("meWarn").style.display="none";
+  return true;
+}
+$("meTpl").addEventListener("click",()=>{
+  const blob=new Blob(["\ufeff"+buildCountTemplateXml(meOutletNow())],{type:"application/vnd.ms-excel"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="month-end-count-"+meOutletNow().replace(/\s+/g,"-")+".xls";
+  a.click(); URL.revokeObjectURL(a.href);
+});
+$("meImportPick").addEventListener("click",()=>{
+  if(role!=="admin"){ alert("Only admin can import counts."); return; }
+  $("fileCountMe").click();
+});
+$("fileCountMe").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    window.__countImportWasMe=true;
+    handleCountImport(String(rd.result), f.name);
+    renderMonthEnd(); updateMeProgress();
+  };
+  rd.readAsText(f,"utf-8");
+  e.target.value="";
+});
+$("meCheck").addEventListener("click",()=>{
+  if(meShowMissing()) alert("✓ All checked — every ingredient of every outlet has an Actual Count. You can complete the month end.");
+});
+$("meFinish").addEventListener("click",()=>{
+  if(!meShowMissing()) return;
+  confirmDlg("Complete month end?",
+    "Every outlet is fully counted. New openings = the counted values, then sales / movements / counts are cleared for the new month. The closing month is saved automatically to Closed months. Download a backup first — this cannot be undone.",
+    ()=>{ doMonthRollover(); closeModal("meModalBg"); });
+});
+$("btnReset").addEventListener("click",()=>{
+  confirmDlg("Reset everything?","This deletes all your data (including the Closed-months history) and puts the original sample data back. Download a backup first!",
+    ()=>{ ARCH=[]; persistArchives(); S=normalize(JSON.parse(JSON.stringify(SEED))); logAction("App reset to sample data"); renderAll(); });
+});
+
+/* ---------- closed-month history (automatic archive) ---------- */
+function archiveCurrentMonth(){
+  const entry={ id: nowLocal(), closedAt: nowLocal(), title: String(S.monthTitle||"").trim()||"Unnamed month",
+    revenue: monthRevenue(), salesCount: S.sales.length, movementCount: S.movements.length,
+    varianceValue: 0, outlets: [] };
+  const r2=v=>Math.round((+v||0)*100)/100;
+  for(const o of S.outlets){
+    const rows=stockRows(o);
+    const salesOf=S.sales.filter(s=>li(s.outlet||"")===li(o));
+    const mvOf=S.movements.filter(v=>li(v.outlet||"")===li(o));
+    const outlet={ name:o, revenue:monthRevenue(o), salesEntries:salesOf.length, movementEntries:mvOf.length, rows:[] };
+    for(const r of rows){
+      outlet.rows.push({ i:r.ing.name, u:r.ing.unitName||"", op:r.opening, pu:r.purchase, ti:r.tfIn, is:r.issue,
+        to:r.tfOut, om:r.ocManual, os:r.sales, en:r.ent, sp:r.spoils, ex:r.expected,
+        ac:(r.actual==null?null:r.actual), va:(r.variance==null?null:r.variance),
+        vv:(r.varVal==null?null:r2(r.varVal)), st:r.status });
+      if(r.varVal!=null) entry.varianceValue+=r.varVal;
+    }
+    entry.outlets.push(outlet);
+  }
+  entry.varianceValue=r2(entry.varianceValue);
+  ARCH.push(entry);
+  if(ARCH.length>60) ARCH.splice(0,ARCH.length-60);
+  persistArchives();
+}
+let mhIdx=-1;
+function renderMonthHistory(){
+  const list=document.getElementById("tMonthHistList"); if(!list) return;
+  const arch=ARCH||[];
+  if(!arch.length){
+    list.innerHTML="<tbody><tr><td class=empty-note>No closed months yet — each \"Complete month end\" or \"Start new month\" is stored here automatically, so old months stay viewable inside the app without backup files.</td></tr></tbody>";
+    return;
+  }
+  const last=arch.length-1;
+  let h="<thead><tr><th>Month title</th><th>Closed on</th><th>Outlets</th><th class=num>Revenue</th><th class=num>Sales lines</th><th class=num>Movements</th><th class=num>Variance value</th><th></th></tr></thead><tbody>";
+  arch.slice().reverse().forEach((a,idx)=>{
+    const i=last-idx;
+    const names=(a.outlets||[]).map(o=>esc(o.name)).join(", ")||"—";
+    h+="<tr><td>"+esc(a.title)+"</td><td>"+esc(fmtDT(a.closedAt||a.id||""))+"</td><td>"+names+"</td>"
+      +"<td class=num>"+money(a.revenue)+"</td><td class=num>"+qtyf(a.salesCount)+"</td><td class=num>"+qtyf(a.movementCount)+"</td>"
+      +"<td class=num"+(a.varianceValue<0?" style='color:var(--low)'":"")+">"+money(a.varianceValue)+"</td>"
+      +"<td><button class='btn ghost small mhView' data-i='"+i+"'>View</button> <button class='btn danger small mhDel' data-i='"+i+"' title='Delete this record'>🗑</button></td></tr>";
+  });
+  h+="</tbody>";
+  list.innerHTML=h;
+  list.querySelectorAll(".mhView").forEach(b=>b.addEventListener("click",()=>openMonthHistory(+b.dataset.i)));
+  list.querySelectorAll(".mhDel").forEach(b=>b.addEventListener("click",()=>{
+    const i=+b.dataset.i;
+    if(role!=="admin"){ alert("Only admin can delete a closed-month record."); return; }
+    const a=ARCH[i]; if(!a) return;
+    confirmDlg("Delete this closed month?",
+      "Remove the history record for \u201c"+a.title+"\u201d? Only the saved copy is deleted — today's data is not affected.",
+      ()=>{ ARCH.splice(i,1); persistArchives(); logAction("Closed-month history deleted: "+(a.title||"")); renderMonthHistory(); });
+  }));
+}
+function openMonthHistory(i){
+  const arch=ARCH[i]; if(!arch) return;
+  mhIdx=i;
+  $("mhTitle").textContent=(arch.title||"Closed month")+" — month-end record";
+  $("mhSub").textContent="Closed "+fmtDT(arch.closedAt||arch.id||"")+" · month revenue "+money(arch.revenue)
+    +" · "+(arch.salesCount||0)+" sales lines · "+(arch.movementCount||0)+" movements · variance value "+money(arch.varianceValue);
+  const sel=$("mhOutlet");
+  sel.innerHTML=(arch.outlets||[]).map(o=>"<option value=\""+esc(o.name)+"\">"+esc(o.name)+"</option>").join("");
+  renderMonthHistoryOutlet();
+  openModal("mhModalBg");
+}
+function renderMonthHistoryOutlet(){
+  const arch=ARCH[mhIdx]; if(!arch) return;
+  const out=(arch.outlets||[]).find(o=>li(o.name)===li($("mhOutlet").value))||(arch.outlets||[])[0];
+  const tbl=$("tMonthHist");
+  if(!out){ tbl.innerHTML="<tbody><tr><td class=empty-note>No stock rows were recorded for this month.</td></tr></tbody>"; return; }
+  $("mhOutletHint").textContent="Outlet revenue "+money(out.revenue)+" · "+(out.salesEntries||0)+" sales lines · "+(out.movementEntries||0)+" movements";
+  const rows=out.rows||[];
+  let h="<thead><tr><th>Ingredient</th><th>Unit</th><th class=num>Opening</th><th class=num>Purchase</th><th class=num>TF-In</th><th class=num>Issue (Store)</th><th class=num>Sales</th><th class=num>TF-Out</th><th class=num>OC (manual)</th><th class=num>Ent</th><th class=num>Spoils</th><th class=num>Expected Closing</th><th class=num>Actual Count</th><th class=num>Variance</th><th class=num>Variance Value</th><th>Status</th></tr></thead><tbody>";
+  const T={op:0,pu:0,ti:0,is:0,os:0,to:0,oc:0,en:0,sp:0,ex:0,ac:0,vv:0}; let counted=0, losses=0, overs=0;
+  for(const r of rows){
+    const ac=r.ac==null?null:+r.ac;
+    const va=r.va==null?null:+r.va;
+    T.op+=+r.op||0; T.pu+=+r.pu||0; T.ti+=+r.ti||0; T.is+=+r.is||0; T.os+=+r.os||0; T.to+=+r.to||0; T.oc+=+r.om||0; T.en+=+r.en||0; T.sp+=+r.sp||0; T.ex+=+r.ex||0;
+    if(ac!=null){ T.ac+=ac; counted++; }
+    if(r.vv!=null) T.vv+=+r.vv;
+    if(r.st==="LOSS") losses++; if(r.st==="OVER") overs++;
+    const bc=r.st==="nc"?"nc":r.st==="LOSS"?"low":r.st==="OVER"?"over":"ok";
+    const btxt=r.st==="nc"?"not counted":r.st;
+    h+="<tr><td>"+esc(r.i)+"</td><td>"+esc(r.u||"—")+"</td>"
+      +"<td class=num>"+qtyf(r.op)+"</td><td class=num>"+qtyf(r.pu)+"</td><td class=num>"+qtyf(r.ti)+"</td><td class=num>"+qtyf(r.is)+"</td><td class=num>"+qtyf(r.os||0)+"</td><td class=num>"+qtyf(r.to)+"</td>"
+      +"<td class=num>"+qtyf(r.om)+"</td><td class=num>"+qtyf(r.en)+"</td><td class=num>"+qtyf(r.sp)+"</td><td class=num>"+qtyf(r.ex)+"</td>"
+      +"<td class=num>"+(ac==null?"—":qtyf(ac))+"</td><td class=num>"+(va==null?"—":qtyf(va))+"</td><td class=num>"+(r.vv==null?"—":money(r.vv))+"</td>"
+      +"<td><span class='badge "+bc+"'>"+btxt+"</span></td></tr>";
+  }
+  const vvStatus=T.vv<0?" style='color:var(--low)'":T.vv>0?" style='color:var(--copper-bright)'":"";
+  const actTxt=counted===rows.length?qtyf(T.ac):qtyf(T.ac)+" ("+(rows.length-counted)+" missing)";
+  h+="</tbody><tfoot><tr class=totals-row><td>TOTAL</td><td></td><td class=num>"+qtyf(T.op)+"</td><td class=num>"+qtyf(T.pu)+"</td><td class=num>"+qtyf(T.ti)+"</td><td class=num>"+qtyf(T.is)+"</td><td class=num>"+qtyf(T.os)+"</td><td class=num>"+qtyf(T.to)+"</td><td class=num>"+qtyf(T.oc)+"</td><td class=num>"+qtyf(T.en)+"</td><td class=num>"+qtyf(T.sp)+"</td><td class=num>"+qtyf(T.ex)+"</td><td class=num>"+actTxt+"</td><td></td><td class=num"+vvStatus+">"+money(T.vv)+"</td><td>"+(losses?losses+" loss"+(losses>1?"es":""):"")+(losses&&overs?" · ":"")+(overs?overs+" over":"")+"</td></tr></tfoot>";
+  tbl.innerHTML=h;
+}
+$("mhOutlet").addEventListener("change",renderMonthHistoryOutlet);
+$("mhCsv").addEventListener("click",()=>{
+  const arch=ARCH[mhIdx]; if(!arch) return;
+  const blob=new Blob([JSON.stringify({kind:"bar-stock-month-history",archive:arch},null,1)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="month-history-"+String(arch.title||"month").replace(/\s+/g,"-").toLowerCase()+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+});
+
+/* ---------- sales outlets (setup: add / rename / delete / default) ---------- */
+function openOutlets(){ renderOutletRows(); openModal("outletModalBg"); }
+$("btnOutlets").addEventListener("click",openOutlets);
+/* The Outlet pickers on Inventory and Stock Card open the same setup dialog. */
+["ingOutletCfg","stkOutletCfg"].forEach(id=>{ const b=$(id); if(b) b.addEventListener("click",openOutlets); });
+function outletDefault(){
+  return (S.outlets.find(o=>li(o)===li(S.defaultOutlet||""))||S.outlets[0]||"");
+}
+function renderOutletRows(){
+  const def=outletDefault();
+  $("outletRows").innerHTML = S.outlets.map(o=>{
+    const n=S.sales.filter(s=>li(s.outlet||"")===li(o)).length;
+    const nm=S.movements.filter(m=>li(m.outlet||"")===li(o)).length;
+    const op=Object.keys(S.openings[o]||{}).length;
+    const isDef=li(o)===li(def);
+    return "<div class=cat-row data-outlet=\""+esc(o)+"\">"
+      +"<button class='def-btn"+(isDef?" on":"")+"' data-def=\""+esc(o)+"\" title='Default outlet — the app opens on this one' aria-label='Set as default outlet'>"+(isDef?"★":"☆")+"</button>"
+      +"<input type=text value=\""+esc(o)+"\" title='Rename this outlet'>"
+      +"<span class=cat-count>"+n+" sales · "+nm+" mov."+(op?" · "+op+" opening":"")+"</span>"
+      +"<button class='rm-btn' title='Delete outlet'>&times;</button></div>";
+  }).join("");
+  if($("outletHint")) $("outletHint").textContent = def? "★ Default outlet: "+def+" — Daily Sales, Movement and Inventory start on it." : "Add an outlet below.";
+}
+$("outletAddBtn").addEventListener("click",()=>{
+  const v=$("outletNewName").value.trim();
+  if(!v){ alert("Type the outlet name."); return; }
+  if(S.outlets.some(o=>li(o)===li(v))){ alert("This outlet already exists."); return; }
+  S.outlets.push(v);
+  if(!S.openings[v]) S.openings[v]={};
+  if(!S.counts[v]) S.counts[v]={};
+  $("outletNewName").value="";
+  logAction("Outlet added: "+v);
+  renderOutletRows(); renderAll();
+});
+/* Enter in the name box adds the outlet, so setup stays keyboard-only friendly. */
+$("outletNewName").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); $("outletAddBtn").click(); } });
+$("outletRows").addEventListener("change",e=>{
+  if(!e.target.matches("input")) return;
+  const row=e.target.closest(".cat-row");
+  const old=row.dataset.outlet, nw=e.target.value.trim();
+  if(!nw || li(nw)===li(old)){ renderOutletRows(); return; }
+  if(S.outlets.some(o=>li(o)===li(nw))){ alert("An outlet with this name already exists."); renderOutletRows(); return; }
+  S.outlets=S.outlets.map(o=>li(o)===li(old)?nw:o);
+  S.sales.forEach(s=>{ if(li(s.outlet||"")===li(old)) s.outlet=nw; });
+  S.movements.forEach(mv=>{ if(li(mv.outlet||"")===li(old)) mv.outlet=nw; });
+  if(S.openings[old]){ S.openings[nw]=S.openings[old]; delete S.openings[old]; }
+  if(S.counts[old]){ S.counts[nw]=S.counts[old]; delete S.counts[old]; }
+  if(li(S.defaultOutlet||"")===li(old)) S.defaultOutlet=nw;
+  logAction("Outlet renamed: "+old+" → "+nw);
+  renderOutletRows(); renderAll();
+});
+$("outletRows").addEventListener("click",e=>{
+  if(!e.target.classList.contains("rm-btn")) return;
+  const row=e.target.closest(".cat-row");
+  const name=row.dataset.outlet;
+  if(S.outlets.length<=1){ alert("You need at least one outlet."); return; }
+  const n=S.sales.filter(s=>li(s.outlet||"")===li(name)).length;
+  const nm=S.movements.filter(m=>li(m.outlet||"")===li(name)).length;
+  const target=S.outlets.find(o=>li(o)!==li(name));
+  if(!confirm("Delete outlet \""+name+"\"?"+((n||nm)?" Its "+n+" sales and "+nm+" movements will move to \""+target+"\", and its opening stock merges there.":""))) return;
+  if(li(S.defaultOutlet||"")===li(name)) S.defaultOutlet=target;
+  S.sales.forEach(s=>{ if(li(s.outlet||"")===li(name)) s.outlet=target; });
+  S.movements.forEach(mv=>{ if(li(mv.outlet||"")===li(name)) mv.outlet=target; });
+  S.openings[target]=S.openings[target]||{};
+  const od=S.openings[name]||{};
+  for(const k in od) S.openings[target][k]=(+S.openings[target][k]||0)+(+od[k]||0);
+  delete S.openings[name];
+  S.counts[target]=S.counts[target]||{};
+  const cd=S.counts[name]||{};
+  for(const k in cd){ if(S.counts[target][k]==null) S.counts[target][k]=cd[k]; }
+  delete S.counts[name];
+  S.outlets=S.outlets.filter(o=>li(o)!==li(name));
+  logAction("Outlet deleted: "+name+((n||nm)?" ("+n+" sales, "+nm+" movements moved to "+target+")":""));
+  renderOutletRows(); renderAll();
+});
+/* ★ picks the outlet the app opens on; every Outlet picker jumps to it straight away. */
+$("outletRows").addEventListener("click",e=>{
+  const b=e.target.closest(".def-btn"); if(!b) return;
+  S.defaultOutlet=b.dataset.def;
+  logAction("Default outlet set: "+S.defaultOutlet);
+  refreshOutletSelects(true);
+  renderAll();        /* redraws every section with the new default outlet picked */
+  renderOutletRows(); /* after renderAll, so the ★ stays on the right row */
+});
+
+/* ---------- global render + init ---------- */
+/* forceDefault=true (used when ★ is pressed) re-points every picker at the default outlet
+   instead of keeping the outlet each section was showing. */
+function refreshOutletSelects(forceDefault){
+  [["sOutlet",false],["logOutlet",true],["conOutlet",true],["tsOutlet",true],
+   ["stkOutlet",true],["mOutlet",false],["ingOutlet",false]].forEach(pair=>{
+    const el=$(pair[0]); if(!el) return;
+    const allOpt=pair[1], cur=el.value;
+    const def=outletDefault();                       /* the outlet marked ★ in ⚙ Outlets */
+    /* A renamed / deleted outlet no longer matches — fall back to ★ (never silently to the
+       first outlet in the list), so the screen stays on the outlet being worked on. */
+    const curHit=(S.outlets.find(o=>li(o)===li(cur))||"");
+    const pick = allOpt ? (li(cur)==="all" ? "all" : (curHit||"all"))
+                        : (forceDefault ? def : (curHit||def));
+    el.innerHTML=(allOpt?"<option value='all'>All outlets</option>":"")+
+      S.outlets.map(o=>"<option value=\""+esc(o)+"\""+(li(o)===li(pick)?" selected":"")+">"+esc(o)+"</option>").join("");
+  });
+}
+function renderActivityLog(){
+  const card=document.getElementById("activityCard");
+  if(role!=="admin"){ card.style.display="none"; return; }
+  card.style.display="";
+  let h="<thead><tr><th>Date &amp; Time</th><th>Role</th><th>Action</th></tr></thead><tbody>";
+  if(!S.actionLog.length) h+="<tr><td colspan=3 class=empty-note>No activity recorded yet.</td></tr>";
+  S.actionLog.slice(0,100).forEach(l=>{
+    h+="<tr><td>"+esc(fmtDT(l.t))+"</td><td>"+esc(l.role)+"</td><td>"+esc(l.a)+"</td></tr>";
+  });
+  if(S.actionLog.length>100) h+="<tr><td colspan=3 class=empty-note>Showing latest 100 of "+S.actionLog.length+".</td></tr>";
+  h+="</tbody>";
+  $("tActivity").innerHTML=h;
+}
+function renderAll(){
+  invalidateCaches();
+  refreshOutletSelects();
+  renderHeader(); renderDashboard();
+  renderSalesEntry(); renderSales(); renderMov(); renderStock();
+  renderItems(); renderRecipes(); renderIngs();
+  renderRecipeLog(); renderConsumption(); renderTopSales(); renderForecast();
+  renderActivityLog(); renderMonthHistory();
+  save();
+}
+/* Re-render only the section a user just opened — full renderAll() is reserved for data
+   changes, so lightweight edits (e.g. a single stock count) only rebuild the touched view
+   and the others refresh when they are next opened. */
+function renderView(name){
+  if(name==="dash"){ renderDashboard(); return; }
+  if(name==="sales"){ renderSales(); return; }
+  if(name==="consumption"){ renderConsumption(); return; }
+  if(name==="topsale"){ renderTopSales(); return; }
+  if(name==="forecast"){ renderForecast(); return; }
+  if(name==="mov"){ renderMov(); return; }
+  if(name==="stock"){ renderStock(); return; }
+  if(name==="items"){ renderItems(); return; }
+  if(name==="recipe"){ renderRecipes(); renderRecipeLog(); return; }
+  if(name==="ing"){ renderIngs(); return; }
+  if(name==="data"){ renderMonthHistory(); renderActivityLog(); }
+}
+/* sale item search: matches name AND POS code */
+function refreshSaleDD(){
+  const dd=$("sItemDD"), q=li($("sItem").value);
+  const opts=S.items
+    .filter(it=>!q || li(it.name).includes(q) || li(it.pos).includes(q))
+    .slice(0,25)
+    .map(it=>({name:it.name,label:(it.pos? "POS "+esc(it.pos)+" · ":"")+esc(it.name)}));
+  if(!opts.length){ dd.style.display="none"; dd.innerHTML=""; return; }
+  dd.innerHTML=opts.map(o=>"<div data-name=\""+o.name+"\">"+o.label+"</div>").join("");
+  dd.style.display="block";
+}
+$("sItem").addEventListener("input",refreshSaleDD);
+$("sItem").addEventListener("focus",refreshSaleDD);
+$("sItemDD").addEventListener("mousedown",e=>{
+  const d=e.target.closest && e.target.closest("div[data-name]");
+  if(!d) return;
+  $("sItem").value=d.dataset.name;
+  $("sItemDD").style.display="none";
+  $("sItem").dispatchEvent(new Event("input",{bubbles:true}));
+});
+$("sItem").addEventListener("blur",()=>setTimeout(()=>$("sItemDD").style.display="none",150));
+attachSearch("sItem","sItemDD",()=>S.items.map(i=>i.name),(name,t)=>{
+  const it=findItem(name);
+  if(!it) return false;
+  return li(String(it.pos)).includes(t) || (isFinite(parseFloat(t)) && isFinite(parseFloat(it.pos)) && parseFloat(it.pos)===parseFloat(t));
+});
+attachSearch("mIng","mIngDD",()=>S.ingredients.map(g=>g.name));
+attachSearch("recItem","recItemDD",()=>S.items.map(i=>i.name));
+attachSearch("recCat","recCatDD",()=>catList("items"));
+wireCatToggle("ngCategory","ngCategoryNew");
+wireCatToggle("miCategory","miCategoryNew");
+$("searchItems").addEventListener("input",e=>{ itemSearch=e.target.value; renderItems(); });
+$("searchRecs").addEventListener("input",e=>{ recSearch=e.target.value; renderRecipes(); });
+$("searchIngs").addEventListener("input",e=>{ ingSearch=e.target.value; renderIngs(); });
+$("searchStock").addEventListener("input",e=>{ stockSearch=e.target.value; renderStock(); });
+$("searchForecast").addEventListener("input",e=>{ fcSearch=e.target.value; renderForecast(); });
+$("conFrom").addEventListener("change",renderConsumption);
+$("conTo").addEventListener("change",renderConsumption);
+$("conToday").addEventListener("click",()=>{ $("conFrom").value=todayISO(); $("conTo").value=todayISO(); renderConsumption(); });
+$("conMtd").addEventListener("click",()=>{ $("conFrom").value=($("conTo").value||todayISO()).slice(0,8)+"01"; renderConsumption(); });
+$("tsFrom").addEventListener("change",()=>{ $("tsMtd").classList.remove("toggled"); tsMode="day"; renderTopSales(); });
+$("tsTo").addEventListener("change",()=>{ $("tsMtd").classList.remove("toggled"); tsMode="day"; renderTopSales(); });
+$("tsToday").addEventListener("click",()=>{ tsMode="day"; $("tsMtd").classList.remove("toggled"); $("tsFrom").value=todayISO(); $("tsTo").value=todayISO(); renderTopSales(); });
+$("tsMtd").addEventListener("click",()=>{ tsMode=(tsMode==="mtd")?"day":"mtd"; $("tsMtd").classList.toggle("toggled",tsMode==="mtd"); renderTopSales(); });
+$("dashFrom").addEventListener("change",()=>{ $("dashMtd").classList.remove("toggled"); renderDashboard(); });
+$("dashTo").addEventListener("change",()=>{ $("dashMtd").classList.remove("toggled"); renderDashboard(); });
+$("dashToday").addEventListener("click",()=>{ $("dashFrom").value=todayISO(); $("dashTo").value=todayISO(); $("dashMtd").classList.remove("toggled"); renderDashboard(); });
+$("dashMtd").addEventListener("click",()=>{ $("dashFrom").value=($("dashTo").value||todayISO()).slice(0,8)+"01"; $("dashMtd").classList.add("toggled"); renderDashboard(); });
+$("dashChartBtn").addEventListener("click",()=>{ dashChartsOn=!dashChartsOn; $("dashChartBtn").classList.toggle("toggled",dashChartsOn); renderDashboard(); });
+$("salesDate").addEventListener("change",()=>{ $("sDate").value=$("salesDate").value; renderSalesEntry(); renderSales(); });
+$("logFrom").addEventListener("change",renderSales);
+$("logTo").addEventListener("change",renderSales);
+$("logToday").addEventListener("click",()=>{ $("logFrom").value=todayISO(); $("logTo").value=todayISO(); renderSales(); });
+$("logMtd").addEventListener("click",()=>{ $("logFrom").value=($("logTo").value||todayISO()).slice(0,8)+"01"; renderSales(); });
+$("logAll").addEventListener("click",()=>{ $("logFrom").value=""; $("logTo").value=""; renderSales(); });
+$("logOutlet").addEventListener("change",renderSales);
+$("conOutlet").addEventListener("change",renderConsumption);
+$("tsOutlet").addEventListener("change",renderTopSales);
+$("stkOutlet").addEventListener("change",renderStock);
+$("ingOutlet").addEventListener("change",renderIngs);
+$("mDate").addEventListener("change",renderMov);
+$("mAll").addEventListener("change",renderMov);
+$("dashFrom").value=todayISO();
+$("dashTo").value=todayISO();
+$("salesDate").value=todayISO();
+$("sDate").value=todayISO();
+$("mDate").value=todayISO();
+$("conFrom").value=todayISO().slice(0,8)+"01";  // Consumption opens on the whole current month (MTD)
+$("conTo").value=todayISO();
+$("tsFrom").value=todayISO();
+$("tsTo").value=todayISO();
+renderAll();
+
+/* ---------- login, roles & security ---------- */
+/* Compact SHA-256 (for password hashing — passwords are never stored as plain text) */
+function sha256(str){
+  str = unescape(encodeURIComponent(str));
+  function rightRotate(value, amount){ return (value>>>amount) | (value<<(32-amount)); }
+  var maxWord = Math.pow(2, 32), i, j, result = "";
+  var words = [], asciiBitLength = str.length * 8;
+  var hash = sha256.h = sha256.h || [];
+  var k = sha256.k = sha256.k || [];
+  var primeCounter = k.length, isComposite = {};
+  for (var candidate = 2; primeCounter < 64; candidate++) {
+    if (!isComposite[candidate]) {
+      for (i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+      hash[primeCounter] = (Math.pow(candidate, .5) * maxWord) | 0;
+      k[primeCounter++] = (Math.pow(candidate, 1/3) * maxWord) | 0;
+    }
+  }
+  str += "\x80";
+  while (str.length % 64 - 56) str += "\x00";
+  for (i = 0; i < str.length; i++) {
+    j = str.charCodeAt(i);
+    words[i >> 2] |= j << ((3 - i) % 4) * 8;
+  }
+  words[words.length] = ((asciiBitLength / maxWord) | 0);
+  words[words.length] = (asciiBitLength);
+  for (j = 0; j < words.length;) {
+    var w = words.slice(j, j += 16), oldHash = hash;
+    hash = hash.slice(0, 8);
+    for (i = 0; i < 64; i++) {
+      var w15 = w[i - 15], w2 = w[i - 2];
+      var a = hash[0], e = hash[4];
+      var temp1 = hash[7]
+        + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
+        + ((e & hash[5]) ^ ((~e) & hash[6]))
+        + k[i]
+        + (w[i] = (i < 16) ? w[i] : (
+            w[i - 16]
+            + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
+            + w[i - 7]
+            + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
+          ) | 0
+        );
+      var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
+        + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+      hash = [(temp1 + temp2) | 0].concat(hash);
+      hash[4] = (hash[4] + temp1) | 0;
+    }
+    for (i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+  }
+  for (i = 0; i < 8; i++)
+    for (j = 3; j + 1; j--) {
+      var b = (hash[i] >> (j * 8)) & 255;
+      result += ((b < 16) ? 0 : "") + b.toString(16);
+    }
+  return result;
+}
+const nowLocal = () => {
+  const d = new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+"T"+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+};
+function logAction(a){
+  S.actionLog.unshift({t: nowLocal(), role: role, a: a});
+  if(S.actionLog.length > 200) S.actionLog.length = 200;
+  save();
+}
+let failCount=0, lockUntil=0, idleTimer=null;
+const IDLE_MS = 10 * 60 * 1000; // auto-lock after 10 minutes without activity
+function applyRole(){
+  document.body.classList.toggle("locked",role==="none");
+  document.body.classList.toggle("staff",role==="staff");
+  document.body.classList.toggle("login-screen",role==="none");
+  $("adminBtn").textContent = role==="admin" ? "🔓 Admin — editing on" : role==="staff" ? "👤 Staff" : "🔒 Locked";
+}
+function setRole(r){
+  if(r==="none") logAction("Logged out");
+  role=r;
+  if(r==="none") sessionStorage.removeItem("barRole"); else sessionStorage.setItem("barRole",r);
+  applyRole();
+  if(r!=="none") logAction("Signed in as "+r);
+  renderAll();
+}
+function staffDateOk(d){
+  if(role==="staff" && d!==todayISO()){
+    alert("Staff access: you can only add or edit entries for today ("+todayISO()+").");
+    return false;
+  }
+  return true;
+}
+function resetIdle(){
+  clearTimeout(idleTimer);
+  if(role==="none") return;
+  idleTimer=setTimeout(()=>{
+    setRole("none");
+    openLogin("Locked automatically after 10 minutes of inactivity — sign in again.");
+  }, IDLE_MS);
+}
+["click","keydown","mousemove","touchstart"].forEach(ev=>document.addEventListener(ev,()=>resetIdle(),{passive:true}));
+function openLogin(msg){
+  const t=$("loginTitle"), info=$("loginInfo"), out=$("loginOut"), tog=$("pwToggle");
+  $("adminPass").value="";
+  $("pwChange").style.display="none";
+  if(role==="admin"){
+    t.textContent="Signed in: Admin";
+    info.textContent=msg || "Full access. Use “Change passwords” to update the Admin or Staff password, or Log out.";
+    out.style.display=""; tog.style.display="";
+    $("loginPwWrap").style.display="none"; $("adminUnlock").style.display="none";
+  } else if(role==="staff"){
+    t.textContent="Signed in: Staff";
+    info.textContent=msg || "Staff can add and edit Daily Sales and Internal Movement for today only. Enter the Admin password for full access, or log out.";
+    out.style.display=""; tog.style.display="none";
+    $("loginPwWrap").style.display=""; $("adminUnlock").style.display="";
+    $("adminUnlock").textContent="Unlock admin";
+  } else {
+    t.textContent="Sign in";
+    info.textContent=msg || "Enter the Admin or Staff password.";
+    out.style.display="none"; tog.style.display="none";
+    $("loginPwWrap").style.display=""; $("adminUnlock").style.display="";
+    $("adminUnlock").textContent="Sign in";
+  }
+  openModal("adminModalBg");
+  setTimeout(()=>{ if($("loginPwWrap").style.display!=="none") $("adminPass").focus(); },60);
+}
+$("adminBtn").addEventListener("click",()=>{
+  if(role==="admin"){ openLogin(); return; }
+  openLogin();
+});
+$("adminUnlock").addEventListener("click",()=>{
+  if(lockUntil && Date.now()<lockUntil){
+    alert("Too many attempts — wait "+Math.ceil((lockUntil-Date.now())/1000)+"s.");
+    return;
+  }
+  const h=sha256($("adminPass").value);
+  if(h===S.passwords.admin) { setRole("admin"); closeModal("adminModalBg"); }
+  else if(h===S.passwords.staff) { setRole("staff"); closeModal("adminModalBg"); }
+  else {
+    failCount++;
+    if(failCount>=5){
+      lockUntil=Date.now()+30000; failCount=0;
+      alert("Too many wrong attempts — try again in 30 seconds.");
+    } else alert("Wrong password.");
+    $("adminPass").value="";
+  }
+});
+$("loginOut").addEventListener("click",()=>{ setRole("none"); closeModal("adminModalBg"); openLogin(); });
+$("pwToggle").addEventListener("click",()=>{
+  const p=document.getElementById("pwChange");
+  p.style.display = p.style.display==="none" ? "block" : "none";
+});
+$("pwSave").addEventListener("click",()=>{
+  const a=$("newPwAdmin").value, s=$("newPwStaff").value;
+  if(!a && !s){ alert("Type a new password first."); return; }
+  if(a && a.length<4){ alert("Admin password must be at least 4 characters."); return; }
+  if(s && s.length<4){ alert("Staff password must be at least 4 characters."); return; }
+  if(a) S.passwords.admin=sha256(a);
+  if(s) S.passwords.staff=sha256(s);
+  $("newPwAdmin").value=""; $("newPwStaff").value="";
+  logAction("Passwords changed"+(a?" (admin)":"")+(s?" (staff)":""));
+  alert("Passwords updated ✓ — use them at the next sign-in.");
+});
+$("adminPass").addEventListener("keydown",e=>{ if(e.key==="Enter") $("adminUnlock").click(); });
+applyRole();
+resetIdle();
+if(role==="none") openLogin();
+excelAutoCheck();
+</script>
+</body>
+</html>
